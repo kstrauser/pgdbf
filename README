@@ -1,0 +1,7 @@
+This is the source distribution of PgDBF, a program for converting XBase DBF
+files into a format that PostgreSQL can import.  It was written by Kirk
+Strauser <kirk@daycos.com>, and generously allowed to be released as Free
+Software by his boss, Brandon Day.
+
+Please see http://honeypot.net/project/pgdbf for further details, reporting
+bugs, etc.
