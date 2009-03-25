@@ -34,3 +34,10 @@ p.footerimage {
     float: left;
     padding: 0 .5em 0 0;
 }
+
+span.standout {
+    color: #2b326b;
+    font-variant: small-caps;
+    font-weight: bold;
+    font-size: x-large;
+}

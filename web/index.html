@@ -2,6 +2,8 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+<link rel="stylesheet" type="text/css" href="style.css">
 <title>PgDBF</title>
 <!-- Piwik -->
 <script type="text/javascript">
@@ -13,31 +15,42 @@ piwik_idsite = 1;
 piwik_url = pkBaseURL + "piwik.php";
 piwik_log(piwik_action_name, piwik_idsite, piwik_url);
 </script>
-<object><noscript><p><img src="http://apps.sourceforge.net/piwik/pgdbf/piwik.php?idsite=1" alt="piwik" /></p></noscript></object>
+<object><noscript><p><img src="http://apps.sourceforge.net/piwik/pgdbf/piwik.php?idsite=1" alt="piwik"></p></noscript></object>
 <!-- End Piwik Tag -->
 </head>
 <body>
-<p>PgDBF is a program for converting XBase databases - particularly FoxPro tables with memo files - into a format that PostgreSQL can directly import.  It is the successor to the <a href="http://honeypot.net/project/xbasetopg">XBaseToPg</a> project which works well but is comparatively slow and big and complicated.  The smallest changes touched lots of files, and the scope of that project is far larger than I actually needed on a daily basis.</p>
-<p>Thus, PgDBF.  It's a small C project with no dependencies other than standard Unix libraries.  While the project is relatively tiny and simple, it's also heavily optimized via profiling.  I routinely got benchmark results that were many times faster than with XBaseToPg.  In fact, even on slower systems, conversions are typically limited by hard drive speed.</p>
-<h2>Features</h2>
-<p>PgDBF was designed with a few core principles:</p>
-<ul>
-  <li>Simplicity.  This code should be understandable by anyone who wants to hack it.</li>
-  <li>Robustness.  Every syscall is checked for success.</li>
-  <li>Speed.  I wanted the fastest conversion available anywhere.</li>
-  <li>Completeness.  It has full support for FoxPro memo files.</li>
-  <li>Portability.  PgDBF runs on 32- and 64-bit systems, and both little-endian (eg x86) and big-endian (eg PowerPC) architectures.
-</ul>
+<div id="navbar">
+  <img src="pgdbflogo.png" alt="PgDBF" id="pgdbflogo">
+  <ul id="navlist">
+    <li><a href="http://sourceforge.net/project/showfiles.php?group_id=257285">Download</a></li>
+    <li><a href="http://sourceforge.net/tracker/?group_id=257285&amp;atid=1127043">Bug tracker</a></li>
+    <li><a href="http://sourceforge.net/forum/?group_id=257285">Forums</a></li>
+    <li><a href="http://pgdbf.git.sourceforge.net/git/gitweb.cgi?p=pgdbf">Git web</a></li>
+    <li><a href="http://sourceforge.net/projects/pgdbf/">SourceForge page</a></li>
+    <li><a href="mailto:kstrauser@users.sourceforge.net">Contact</a></li>
+  </ul>
+</div>
+<div id="content">
+  <p><span class="standout">PgDBF</span> is a program for converting XBase databases - particularly FoxPro tables with memo files - into a format that PostgreSQL can directly import.  It's a compact C project with no dependencies other than standard Unix libraries.  While the project is relatively tiny and simple, it's also heavily optimized via profiling - routine benchmark were many times faster than with other Open Source programs.  In fact, even on slower systems, conversions are typically limited by hard drive speed.</p>
+  <h2>Features</h2>
+  <p>PgDBF was designed with a few core principles:</p>
+  <ul>
+    <li>Simplicity.  This code should be understandable by anyone who wants to hack it.</li>
+    <li>Robustness.  Every syscall is checked for success.</li>
+    <li>Speed.  PgDBF was born to be the fastest conversion available anywhere.</li>
+    <li>Completeness.  It has full support for FoxPro memo files.</li>
+    <li>Portability.  PgDBF runs on 32- and 64-bit systems, and both little-endian (eg x86) and big-endian (eg PowerPC) architectures.
+  </ul>
 
-<h2>Downloading</h2>
+  <h2>Downloading</h2>
 
-<p>The project is available at <a href="http://sourceforge.net/project/showfiles.php?group_id=257285">the SourceForge download page</a>.</p>
+  <p>The project is available at <a href="http://sourceforge.net/project/showfiles.php?group_id=257285">the SourceForge download page</a>.</p>
 
-<h2>Building and Installation</h2>
-<p><tt>$ ./configure; make; make install</tt></p>
-<h2>Usage</h2>
-<p>Use pgdbf to convert your XBase tables into a format suitable for piping into the psql client.  pgdbf will generate the commands necessary to create near-exact replicas of your tables. Its output looks something like: </p>
-<pre>
+  <h2>Building and Installation</h2>
+  <p><tt>$ ./configure; make; make install</tt></p>
+  <h2>Usage</h2>
+  <p>Use pgdbf to convert your XBase tables into a format suitable for piping into the psql client.  pgdbf will generate the commands necessary to create near-exact replicas of your tables. Its output looks something like: </p>
+  <pre>
 BEGIN;
 SET statement_timeout=60000; DROP TABLE IF EXISTS invoice; SET statement_timeout=0;
 CREATE TABLE invoice (invoiceid INTEGER, note VARCHAR(50), billdate DATE, submitted TIMESTAMP, memofield TEXT, approved BOOLEAN);
@@ -49,30 +62,28 @@ CREATE TABLE invoice (invoiceid INTEGER, note VARCHAR(50), billdate DATE, submit
 COMMIT;
 CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
 </pre><p>
-Note that the entire process is wrapped inside a transaction so that other clients will have access to the old data until the transaction is completed. </p>
-<p>Indices are automatically created if you specify the columns (or expressions!) you want indexed on the command line. For example, </p>
-<pre>
+  Note that the entire process is wrapped inside a transaction so that other clients will have access to the old data until the transaction is completed. </p>
+  <p>Indices are automatically created if you specify the columns (or expressions!) you want indexed on the command line. For example, </p>
+  <pre>
 pgdbf foo.dbf rowid "substr(textfield,1,4)" price
 </pre><p>
-will create three indices on the new foo table: one each for the rowid and price columns, and one for the substr() expression. It tries to give each index a reasonable name.</p>
-<h2>Note about character encodings</h2>
-<p>Older versions of PostgreSQL defaulted to the SQL_ASCII character encoding which accepted pretty much any string of bytes you could throw at it.  Newer versions of PostgreSQL default to using UTF-8 encoding.  PgDBF outputs data exactly as it's stored in the XBase tables, and this can result in dumps that PostgreSQL can't directly import.</p>
-<p>This can be handled by using the <tt>iconv</tt> command like so:</p>
-<pre>
+  will create three indices on the new foo table: one each for the rowid and price columns, and one for the substr() expression. It tries to give each index a reasonable name.</p>
+  <h2>Note about character encodings</h2>
+  <p>Older versions of PostgreSQL defaulted to the SQL_ASCII character encoding which accepted pretty much any string of bytes you could throw at it.  Newer versions of PostgreSQL default to using UTF-8 encoding.  PgDBF outputs data exactly as it's stored in the XBase tables, and this can result in dumps that PostgreSQL can't directly import.</p>
+  <p>This can be handled by using the <tt>iconv</tt> command like so:</p>
+  <pre>
 $ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
 </pre><p>
-Note that this will <em>discard</em> data that can't be stored in UTF-8.  If this is unacceptable, consider changing your PostgreSQL encoding to match your XBase data.</p>
-<h2>Differences from XBaseToPg</h2>
-<p>I changed datestamps to print as their Julian day to avoid limitations in standard time library functions.</p>
-<p>This is a brand new implementation with no code common to XBaseToPg, other than a few lines I'd originally written myself to add PostgreSQL support to that project.  I found some <a href="http://www.clicketyclick.dk/databases/xbase/format/">XBase file format specs</a> and started from the ground up.</p>
+  Note that this will <em>discard</em> data that can't be stored in UTF-8.  If this is unacceptable, consider changing your PostgreSQL encoding to match your XBase data.</p>
+
 <h2>Bugs</h2>
 <p>Filenames are case sensitive.  Memo files must be named the same as their associated data files, but with the extension <tt>.fpt</tt>.  For example, if the data file is named <tt>FooTABle.DBF</tt>, the memo file must be named <tt>FooTABle.fpt</tt>.  This is more of a Unix pattern than a bug, but may catch Windows admins off-guard.</p>
 <p>When multiple incompatible interpretations of a type are available, such as the 'B' type which can mean 'binary object' in dBASE V or 'double-precision float' in FoxPro, I've used the FoxPro version.</p>
-<p>Not all XBase datatypes are supported right now.  As of this writing, PgDBF can handle boolean, currency, date, double-precision float, float, general (although only outputs empty strings; I don't know how to resolve OLE objects at this time), integer, memo, numeric, timestamp, and varchar fields.  If you need other datatypes, send me a small sample database that I can test.</p>
+<p>Not all XBase datatypes are supported right now.  As of this writing, PgDBF can handle boolean, currency, date, double-precision float, float, general (although only outputs empty strings; it's unclear how to resolve OLE objects at this time), integer, memo, numeric, timestamp, and varchar fields.  If you need other datatypes, send a small sample database for testing.</p>
 
-<p><a href="http://sourceforge.net/projects/pgdbf"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=257285&amp;type=11" width="120" height="30" alt="Get PgDBF at SourceForge.net. Fast, secure and Free Open Source software downloads" /></a></p>
-<p>
-<a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-html401-blue" alt="Valid HTML 4.01 Strict" height="31" width="88"></a>
-</p>
+<p class="footerimage"><a href="http://sourceforge.net/projects/pgdbf"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=257285&amp;type=11" width="120" height="30" alt="Get PgDBF at SourceForge.net. Fast, secure and Free Open Source software downloads"></a></p>
+<p class="footerimage"><a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-html401-blue" alt="Valid HTML 4.01 Strict" height="31" width="88"></a></p>
+<p class="footerimage"><a href="http://jigsaw.w3.org/css-validator/check/referer"><img style="border:0;width:88px;height:31px" src="http://jigsaw.w3.org/css-validator/images/vcss-blue" alt="Valid CSS!" /></a></p>
+</div>
 </body>
 </html>
