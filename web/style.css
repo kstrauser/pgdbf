@@ -1,0 +1,36 @@
+div#navbar {
+    float: right;
+    background-color: #acb5ff;
+    margin: 1em;
+    border: thin solid #2b326b;
+}
+
+img#pgdbflogo {
+    padding: 1em 1em 0 1em;
+}
+
+ul#navlist > li {
+    padding-right: .5em
+}
+
+ul#navlist > li > a:link,a:visited {
+    color: #2b326b;
+}
+
+h2 {
+    padding-left: .5em;
+    color: #2b326b;
+}
+
+p {
+    padding: 0 2em 0 2em;
+}
+
+pre {
+    padding-left: 3em;
+}
+
+p.footerimage {
+    float: left;
+    padding: 0 .5em 0 0;
+}
