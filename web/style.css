@@ -41,3 +41,7 @@ span.standout {
     font-weight: bold;
     font-size: x-large;
 }
+
+div#content > ul > li {
+    margin-left: 2em;
+}
