@@ -449,6 +449,7 @@ int main(int argc, char **argv)
 				   implementation of XBase. */
 				memoblocknumber = memoblocknumber * 10 + *s - '0';
 			    }
+			    s++;
 			}
 		    }
 		    if(memoblocknumber) {
