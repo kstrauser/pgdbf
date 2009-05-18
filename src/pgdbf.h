@@ -25,6 +25,16 @@
  * buffer of this size, then a temporary buffer will be allocated for it. */
 #define STATICBUFFERSIZE 1024 * 1024
 
+/* Attempt to read approximately this many bytes from the .dbf file at once.
+ * The actual number may be adjusted up or down as appropriate. */
+#define DBFBATCHTARGET 128 * 1024
+
+/* Old versions of FoxPro (and probably other programs) store the memo file
+ * record number in human-readable ASCII. Newer versions of FoxPro store it
+ * as a 32-bit packed int. */
+#define PACKEDMEMOSTYLE 0
+#define NUMERICMEMOSTYLE 1
+
 static char staticbuf[STATICBUFFERSIZE + 1];
 
 /* The list of reserved words that can't be used as column names, as per

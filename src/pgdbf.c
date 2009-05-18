@@ -30,8 +30,6 @@
 
 #include "pgdbf.h"
 
-#define DBFBATCHTARGET 128 * 1024
-
 int main(int argc, char **argv)
 {
     /* Describing the DBF file */
@@ -55,6 +53,8 @@ int main(int argc, char **argv)
     char        *memofilename;
     int          memofd;
     struct stat  memostat;
+    int          memoblockstyle;
+    int32_t      memoblocknumber;
 
     void        *memomap = NULL; /* Pointer to the mmap of the memo file */
     void        *memorecord;	 /* Pointer to the current memo block */
@@ -313,6 +313,15 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	    }
 	    printf("TEXT");
+	    /* Decide whether to use numeric or packed int memo block
+	     * number */
+	    if(fields[fieldnum].length == 4) {
+		memoblockstyle = PACKEDMEMOSTYLE;
+	    } else if (fields[fieldnum].length == 10) {
+		memoblockstyle = NUMERICMEMOSTYLE;
+	    } else {
+		exitwitherror("Unknown memo record number style", 0);
+	    }
 	    break;
 	case 'N':
 	    printf("TEXT");	/* Was a numeric at one point, but for our
@@ -429,8 +438,23 @@ int main(int argc, char **argv)
 		    break;
 		case 'M':
 		    /* Memos */
-		    memorecord = memomap + memoblocksize * slittleint32_t(bufoffset);
-		    safeprintbuf(memorecord + 8, sbigint32_t(memorecord + 4));
+		    if(memoblockstyle == PACKEDMEMOSTYLE) {
+			memoblocknumber = slittleint32_t(bufoffset);
+		    } else if (memoblockstyle == NUMERICMEMOSTYLE) {
+			memoblocknumber = 0;
+			s = bufoffset;
+			for(i = 0; i < 10; i++) {
+			    if(*s != 32) {
+				/* I'm unaware of any non-ASCII
+				   implementation of XBase. */
+				memoblocknumber = memoblocknumber * 10 + *s - '0';
+			    }
+			}
+		    }
+		    if(memoblocknumber) {
+			memorecord = memomap + memoblocksize * memoblocknumber;
+			safeprintbuf(memorecord + 8, sbigint32_t(memorecord + 4));
+		    }
 		    break;
 		case 'F':
 		case 'N':
