@@ -88,14 +88,21 @@ int main(int argc, char **argv)
 				 * Anything else is an exit code and the
 				 * program will stop. */
     int     useifexists = 0;
+    int     usedroptable = 1;
 
     /* Describing the PostgreSQL table */
     char *tablename;
     char  fieldname[11];
 
     /* Attempt to parse any command line arguments */
-    while((opt = getopt(argc, argv, "eh")) != -1) {
+    while((opt = getopt(argc, argv, "dDeh")) != -1) {
 	switch(opt) {
+	case 'd':
+	    usedroptable = 1;
+	    break;
+	case 'D':
+	    usedroptable = 0;
+	    break;
 	case 'e':
 	    useifexists = 1;
 	    break;
@@ -118,6 +125,8 @@ int main(int argc, char **argv)
 	printf("Usage: %s [-eh] filename [indexcolumn ...]\n", PACKAGE);
 	printf("Convert the named XBase file into PostgreSQL format\n");
 	printf("\n");
+	printf("  -d  issue a 'DROP TABLE' command before creating the table (default)\n");
+	printf("  -D  do not issue a 'DROP TABLE' command\n");
 	printf("  -e  use 'IF EXISTS' when dropping tables (PostgreSQL 8.2+)\n");
 	printf("  -h  print this message and exit\n");
 	printf("\n");
@@ -235,15 +244,19 @@ int main(int argc, char **argv)
 	memoblocksize = (size_t) sbigint16_t(((MEMOHEADER*) memomap)->blocksize);
     }
 
-    /* Print the PostgreSQL header */
+    /* Encapsulate the whole process in a transaction */
     printf("BEGIN;\n");
-    printf("SET statement_timeout=60000; DROP TABLE");
-    /* Newer versions of PostgreSQL (8.2+) support "if exists" when
-     * dropping tables. */
-    if(useifexists) {
-	printf(" IF EXISTS");
+
+    
+    if(usedroptable) {
+	printf("SET statement_timeout=60000; DROP TABLE");
+	/* Newer versions of PostgreSQL (8.2+) support "if exists" when
+	 * dropping tables. */
+	if(useifexists) {
+	    printf(" IF EXISTS");
+	}
+	printf(" %s; SET statement_timeout=0;\n", tablename);
     }
-    printf(" %s; SET statement_timeout=0;\n", tablename);
 
     /* Generate the create table statement */
     printf("CREATE TABLE %s (", tablename);
@@ -503,6 +516,8 @@ int main(int argc, char **argv)
     free(inputbuffer);
     free(outputbuffer);
     printf("\\.\n");
+
+    /* Until this point, no changes have been flushed to the database */
     printf("COMMIT;\n");
 
     /* Generate the indexes */
