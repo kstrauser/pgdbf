@@ -53,9 +53,13 @@ piwik_log(piwik_action_name, piwik_idsite, piwik_url);
   <p>The project is available at <a href="http://sourceforge.net/project/showfiles.php?group_id=257285">the SourceForge download page</a>.</p>
 
   <h2>Building and Installation</h2>
+
   <p><tt>$ ./configure; make; make install</tt></p>
+
   <h2>Usage</h2>
-  <p>Use pgdbf to convert your XBase tables into a format suitable for piping into the psql client.  pgdbf will generate the commands necessary to create near-exact replicas of your tables. Its output looks something like: </p>
+
+  <p>Use PgDBF to convert your XBase tables into a format suitable for piping into the psql client.  PgDBF will generate the commands necessary to create near-exact replicas of your tables. Its output looks something like: </p>
+
   <pre>
 BEGIN;
 SET statement_timeout=60000; DROP TABLE IF EXISTS invoice; SET statement_timeout=0;
@@ -67,34 +71,66 @@ CREATE TABLE invoice (invoiceid INTEGER, note VARCHAR(50), billdate DATE, submit
 \.
 COMMIT;
 CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
-</pre><p>
-  Note that the entire process is wrapped inside a transaction so that other clients will have access to the old data until the transaction is completed. </p>
+  </pre>
+
+  <p>Note that the entire process is wrapped inside a transaction so that other clients will have access to the old data until the transaction is completed. </p>
+
+  <h3>Command Line</h3>
+
+  <p><tt>Usage: pgdbf [-dDeh] filename [indexcolumn ...]</tt></p>
+
+  <p>The only required argument is the filename of the table to be converted.  If the table has a memo field, then the memo file must be in the same directory and have the same filename root but with the extension <tt>.fpt</tt>.  For example, if converting <tt>/tmp/Invoice.dbf</tt>, then the memo file must be named <tt>/tmp/Invoice.fpt</tt>.</p>
+
+  <p>The "-d" flag causes PgDBF to print a "DROP TABLE" statement before the "CREATE TABLE" command.  This is useful for replacing the contents of a table that already exists in PostgreSQL.  This is the default behavior.</p>
+
+  <p>The "-D" flag causes PgDBF <em>not</em> to print the "DROP TABLE" statement.</p>
+
+  <p>The "-e" flag changes the "DROP TABLE" statement to "DROP TABLE IF EXISTS".  PostgreSQL will return an error when attempting to drop a table that does not exist.  Version 8.2 and newer can use the "IF EXISTS" modifier to drop the table only if it's already defined, and otherwise continue without error.</p>
+  
   <p>Indices are automatically created if you specify the columns (or expressions!) you want indexed on the command line. For example, </p>
+
   <pre>
 pgdbf foo.dbf rowid "substr(textfield,1,4)" price
-</pre><p>
-  will create three indices on the new foo table: one each for the rowid and price columns, and one for the substr() expression. It tries to give each index a reasonable name.</p>
+  </pre>
+
+<p>will create three indices on the new foo table: one each for the rowid and price columns, and one for the substr() expression. It tries to give each index a reasonable name.</p>
+
   <h2>Note about character encodings</h2>
+
   <p>Older versions of PostgreSQL defaulted to the SQL_ASCII character encoding which accepted pretty much any string of bytes you could throw at it.  Newer versions of PostgreSQL default to using UTF-8 encoding.  PgDBF outputs data exactly as it's stored in the XBase tables, and this can result in dumps that PostgreSQL can't directly import.</p>
   <p>This can be handled by using the <tt>iconv</tt> command like so:</p>
   <pre>
 $ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
-</pre><p>
-  Note that this will <em>discard</em> data that can't be stored in UTF-8.  If this is unacceptable, consider changing your PostgreSQL encoding to match your XBase data.</p>
+  </pre>
+  <p>Note that this will <em>discard</em> data that can't be stored in UTF-8.  If this is unacceptable, consider changing your PostgreSQL encoding to match your XBase data.</p>
 
-<h2>Bugs</h2>
-<p>Filenames are case sensitive.  Memo files must be named the same as their associated data files, but with the extension <tt>.fpt</tt>.  For example, if the data file is named <tt>FooTABle.DBF</tt>, the memo file must be named <tt>FooTABle.fpt</tt>.  This is more of a Unix pattern than a bug, but may catch Windows admins off-guard.</p>
-<p>When multiple incompatible interpretations of a type are available, such as the 'B' type which can mean 'binary object' in dBASE V or 'double-precision float' in FoxPro, I've used the FoxPro version.</p>
-<p>Not all XBase datatypes are supported right now.  As of this writing, PgDBF can handle boolean, currency, date, double-precision float, float, general (although only outputs empty strings; it's unclear how to resolve OLE objects at this time), integer, memo, numeric, timestamp, and varchar fields.  If you need other datatypes, send a small sample database for testing.</p>
+  <h2>Bugs</h2>
 
-<hr>
-<p>
-<!-- hhmts start --> Last modified: Wed Apr  8 11:08:25 CDT 2009 <!-- hhmts end -->
-<br>
-<a href="http://sourceforge.net/projects/pgdbf"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=257285&amp;type=11" width="120" height="30" alt="Get PgDBF at SourceForge.net. Fast, secure and Free Open Source software downloads"></a>
-<a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-html401-blue" alt="Valid HTML 4.01 Strict" height="31" width="88"></a>
-<a href="http://jigsaw.w3.org/css-validator/check/referer"><img style="border:0;width:88px;height:31px" src="http://jigsaw.w3.org/css-validator/images/vcss-blue" alt="Valid CSS!"></a>
-</p>
+  <p>When multiple incompatible interpretations of a type are available, such as the 'B' type which can mean 'binary object' in dBASE V or 'double-precision float' in FoxPro, I've used the FoxPro version.</p>
+
+  <p>Not all XBase datatypes are supported right now.  As of this writing, PgDBF can handle boolean, currency, date, double-precision float, float, general (although only outputs empty strings; it's unclear how to resolve OLE objects at this time), integer, memo, numeric, timestamp, and varchar fields.  If you need other datatypes, send a small sample database for testing.</p>
+
+  <h2>Contributors</h2>
+
+  <p>PgDBF was written by Kirk Strauser &lt;<a href="mailto:kstrauser@users.sourceforge.net">kstrauser@users.sourceforge.net</a>&gt; and approved for release under the GPLv3 by the owner of his company, Brandon Day.</p>
+
+  <p>Special thanks to the following for suggestions and bug reports:</p>
+
+  <ul>
+    <li>Alan Polinsky</li>
+    <li>Fabrízio de Royes Mello</li>
+    <li>Gordon Sweet</li>
+  </ul>
+
+  <hr>
+
+  <p>
+  <!-- hhmts start --> Last modified: Thu Jun 11 15:44:08 CDT 2009 <!-- hhmts end -->
+  <br>
+  <a href="http://sourceforge.net/projects/pgdbf"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=257285&amp;type=11" width="120" height="30" alt="Get PgDBF at SourceForge.net. Fast, secure and Free Open Source software downloads"></a>
+  <a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-html401-blue" alt="Valid HTML 4.01 Strict" height="31" width="88"></a>
+  <a href="http://jigsaw.w3.org/css-validator/check/referer"><img style="border:0;width:88px;height:31px" src="http://jigsaw.w3.org/css-validator/images/vcss-blue" alt="Valid CSS!"></a>
+  </p>
 </div>
 </body>
 </html>

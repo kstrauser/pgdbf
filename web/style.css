@@ -1,3 +1,7 @@
+body {
+    font-family: sans-serif;
+}
+
 div#navbar {
     float: right;
     background-color: #acb5ff;
@@ -19,6 +23,11 @@ ul#navlist > li > a:link,a:visited {
 
 h2 {
     padding-left: .5em;
+    color: #2b326b;
+}
+
+h3 {
+    padding-left: 1em;
     color: #2b326b;
 }
 
