@@ -33,21 +33,21 @@
 int main(int argc, char **argv)
 {
     /* Describing the DBF file */
-    char         *dbffilename;
-    FILE         *dbffile;
-    DBFHEADER     dbfheader;
-    DBFFIELD     *fields;
-    char        **formatstring;
-    size_t        fieldcount;	  /* Number of fields for this DBF file */
-    unsigned int  recordbase;	  /* The first record in a batch of records */
-    unsigned int  dbfbatchsize;	  /* How many DBF records to read at once */
-    unsigned int  batchindex;     /* The offset inside the current batch of
-				   * DBF records */
-    int           dbcsize;        /* The length of the Visual FoxPro DBC in
-				     this file (if there is one) */
-    int           fieldarraysize; /* The length of the field descriptor
-				   * array */
-    int           fieldnum;       /* The current field beind processed */
+    char          *dbffilename;
+    FILE          *dbffile;
+    DBFHEADER      dbfheader;
+    DBFFIELD      *fields;
+    char         **formatstring;
+    size_t         fieldcount;	   /* Number of fields for this DBF file */
+    unsigned int   recordbase;	   /* The first record in a batch of records */
+    unsigned int   dbfbatchsize;   /* How many DBF records to read at once */
+    unsigned int   batchindex;     /* The offset inside the current batch of
+				    * DBF records */
+    int            dbcsize;        /* The length of the Visual FoxPro DBC in
+				      this file (if there is one) */
+    int            fieldarraysize; /* The length of the field descriptor
+				    * array */
+    int            fieldnum;       /* The current field beind processed */
 
     /* Describing the memo file */
     char        *memofilename;
@@ -60,12 +60,13 @@ int main(int argc, char **argv)
     void        *memorecord;	 /* Pointer to the current memo block */
     size_t       memoblocksize = 0;  /* The length of each memo block */
 
-    /* Processing */
-    char   *inputbuffer;
-    char   *outputbuffer;
-    char   *bufoffset;
-    char   *s;
-    char   *t;
+    /* Processing and misc */
+    char *inputbuffer;
+    char *outputbuffer;
+    char *bufoffset;
+    char *s;
+    char *t;
+    int  lastcharwasreplaced = 0;
 
     /* Datetime calculation stuff */
     int32_t juliandays;
@@ -122,7 +123,7 @@ int main(int argc, char **argv)
     }
     
     if(optexitcode != -1) {
-	printf("Usage: %s [-eh] filename [indexcolumn ...]\n", PACKAGE);
+	printf("Usage: %s [-dDeh] filename [indexcolumn ...]\n", PACKAGE);
 	printf("Convert the named XBase file into PostgreSQL format\n");
 	printf("\n");
 	printf("  -d  issue a 'DROP TABLE' command before creating the table (default)\n");
@@ -526,8 +527,13 @@ int main(int argc, char **argv)
 	for(s = argv[i]; *s; s++) {
 	    if(isalnum(*s)) {
 		putchar(*s);
+		lastcharwasreplaced = 0;
 	    } else {
-		putchar('_');
+		/* Only output one underscore in a row */
+		if(!lastcharwasreplaced) {
+		    putchar('_');
+		    lastcharwasreplaced = 1;
+		}
 	    }
 	}
 	printf(" ON %s(%s);\n", tablename, argv[i]);
