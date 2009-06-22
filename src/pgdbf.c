@@ -37,17 +37,19 @@ int main(int argc, char **argv)
     FILE          *dbffile;
     DBFHEADER      dbfheader;
     DBFFIELD      *fields;
+    size_t         dbffieldsize;
     char         **formatstring;
     size_t         fieldcount;	   /* Number of fields for this DBF file */
     unsigned int   recordbase;	   /* The first record in a batch of records */
     unsigned int   dbfbatchsize;   /* How many DBF records to read at once */
     unsigned int   batchindex;     /* The offset inside the current batch of
 				    * DBF records */
-    int            dbcsize;        /* The length of the Visual FoxPro DBC in
-				      this file (if there is one) */
+    int            skipbytes;      /* The length of the Visual FoxPro DBC in
+				    * this file (if there is one) */
     int            fieldarraysize; /* The length of the field descriptor
 				    * array */
     int            fieldnum;       /* The current field beind processed */
+    uint8_t        terminator;     /* Testing for terminator bytes */
 
     /* Describing the memo file */
     char        *memofilename;
@@ -174,30 +176,37 @@ int main(int argc, char **argv)
     if(fread(&dbfheader, sizeof(dbfheader), 1, dbffile) != 1) {
 	exitwitherror("Unable to read the entire DBF header", 1);
     }
+
     if(dbfheader.signature == 0x30) {
 	/* Certain Visual FoxPro files have an (empty?) 263-byte buffer
 	 * after the header information.  Take that into account when
 	 * calculating field counts and possibly seeking over it later. */
-	dbcsize = 263;
+	skipbytes = 263;
     } else {
-	dbcsize = 0;
+	skipbytes = 0;
     }
 
     /* Calculate the number of fields in this file */
-    fieldarraysize = littleint16_t(dbfheader.headerlength) - sizeof(dbfheader) - dbcsize - 1;
-    fieldcount = fieldarraysize / sizeof(DBFFIELD);
-
-    /* Double-check the math */
-    if((fieldcount * sizeof(DBFFIELD)) != fieldarraysize) {
+    dbffieldsize = sizeof(DBFFIELD);
+    fieldarraysize = littleint16_t(dbfheader.headerlength) - sizeof(dbfheader) - skipbytes - 1;
+    if(fieldarraysize % dbffieldsize == 1) {
+	/* Some dBASE III files include an extra terminator byte after the
+	 * field descriptor array.  If our calculations are one byte off,
+	 * that's the cause and we have to skip the extra byte when seeking
+	 * to the start of the records. */
+	skipbytes += 1;
+	fieldarraysize -= 1;
+    } else if(fieldarraysize % dbffieldsize) {
 	exitwitherror("The field array size is not an even multiple of the database field size", 0);
     }
+    fieldcount = fieldarraysize / dbffieldsize;
 
     /* Fetch the description of each field */
-    fields = malloc(fieldcount * sizeof(DBFFIELD));
+    fields = malloc(fieldarraysize);
     if(fields == NULL) {
 	exitwitherror("Unable to malloc the field descriptions", 1);
     }
-    if(fread(fields, sizeof(DBFFIELD), fieldcount, dbffile) != fieldcount) {
+    if(fread(fields, dbffieldsize, fieldcount, dbffile) != fieldcount) {
 	exitwitherror("Unable to read all of the field descriptions", 1);
     }
 
@@ -211,8 +220,16 @@ int main(int argc, char **argv)
 	formatstring[i] = NULL;
     }
 
+    /* Check for the terminator character */
+    if(fread(&terminator, 1, 1, dbffile) != 1) {
+	exitwitherror("Unable to read the terminator byte", 1);
+    }
+    if(terminator != 13) {
+	exitwitherror("Invalid terminator byte", 0);
+    }
+
     /* Skip the database container if necessary */
-    if(fseek(dbffile, 1 + dbcsize, SEEK_CUR)) {
+    if(fseek(dbffile, skipbytes, SEEK_CUR)) {
 	exitwitherror("Unable to seek in the DBF file", 1);
     }
 
@@ -248,7 +265,7 @@ int main(int argc, char **argv)
     /* Encapsulate the whole process in a transaction */
     printf("BEGIN;\n");
 
-    
+    /* Drop the table if requested */
     if(usedroptable) {
 	printf("SET statement_timeout=60000; DROP TABLE");
 	/* Newer versions of PostgreSQL (8.2+) support "if exists" when
