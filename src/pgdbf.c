@@ -37,8 +37,8 @@ int main(int argc, char **argv)
     FILE          *dbffile;
     DBFHEADER      dbfheader;
     DBFFIELD      *fields;
+    PGFIELD       *pgfields;
     size_t         dbffieldsize;
-    char         **formatstring;
     size_t         fieldcount;	   /* Number of fields for this DBF file */
     unsigned int   recordbase;	   /* The first record in a batch of records */
     unsigned int   dbfbatchsize;   /* How many DBF records to read at once */
@@ -55,7 +55,6 @@ int main(int argc, char **argv)
     char        *memofilename;
     int          memofd;
     struct stat  memostat;
-    int          memoblockstyle;
     int32_t      memoblocknumber;
 
     void        *memomap = NULL; /* Pointer to the mmap of the memo file */
@@ -90,16 +89,24 @@ int main(int argc, char **argv)
 				 * valid and the program should run.
 				 * Anything else is an exit code and the
 				 * program will stop. */
-    int     useifexists = 0;
+    int     usecreatetable = 1;
     int     usedroptable = 1;
+    int     useifexists = 0;
+    int     usetransaction = 1;
 
     /* Describing the PostgreSQL table */
     char *tablename;
     char  fieldname[11];
 
     /* Attempt to parse any command line arguments */
-    while((opt = getopt(argc, argv, "dDeh")) != -1) {
+    while((opt = getopt(argc, argv, "cCdDehtT")) != -1) {
 	switch(opt) {
+	case 'c':
+	    usecreatetable = 1;
+	    break;
+	case 'C':
+	    usecreatetable = 0;
+	    break;
 	case 'd':
 	    usedroptable = 1;
 	    break;
@@ -108,6 +115,12 @@ int main(int argc, char **argv)
 	    break;
 	case 'e':
 	    useifexists = 1;
+	    break;
+	case 't':
+	    usetransaction = 1;
+	    break;
+	case 'T':
+	    usetransaction = 0;
 	    break;
 	case 'h':
 	default:
@@ -125,13 +138,17 @@ int main(int argc, char **argv)
     }
     
     if(optexitcode != -1) {
-	printf("Usage: %s [-dDeh] filename [indexcolumn ...]\n", PACKAGE);
+	printf("Usage: %s [-cCdDehtT] filename [indexcolumn ...]\n", PACKAGE);
 	printf("Convert the named XBase file into PostgreSQL format\n");
 	printf("\n");
+	printf("  -c  issue a 'CREATE TABLE' command to create the table (default)\n");
+	printf("  -C  do not issue a 'CREATE TABLE' command\n");
 	printf("  -d  issue a 'DROP TABLE' command before creating the table (default)\n");
 	printf("  -D  do not issue a 'DROP TABLE' command\n");
 	printf("  -e  use 'IF EXISTS' when dropping tables (PostgreSQL 8.2+)\n");
 	printf("  -h  print this message and exit\n");
+	printf("  -t  wrap a transaction around the entire series of statements (default)\n");
+	printf("  -T  do not use an enclosing transaction\n");
 	printf("\n");
 	printf("%s is copyright 2009 The Day Companies.\n", PACKAGE_STRING);
 	printf("License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");
@@ -139,6 +156,13 @@ int main(int argc, char **argv)
 	printf("There is NO WARRANTY, to the extent permitted by law.\n");
 	printf("Report bugs to <%s>\n", PACKAGE_BUGREPORT);
 	exit(optexitcode);
+    }
+
+    /* Sanity check the arguments */
+    if(!usecreatetable) {
+	/* It makes no sense to drop the table without creating it
+	 * afterward */
+	usedroptable = 0;
     }
 
     /* Calculate the table's name based on the DBF filename */
@@ -210,14 +234,13 @@ int main(int argc, char **argv)
 	exitwitherror("Unable to read all of the field descriptions", 1);
     }
 
-    /* Create a list of format strings for various fields that may need
-     * them */
-    formatstring = malloc(fieldcount * sizeof(char *));
-    if(formatstring == NULL) {
-	exitwitherror("Unable to malloc the format string list", 1);
+    /* Keep track of PostgreSQL output parameters */
+    pgfields = malloc(fieldcount * sizeof(PGFIELD));
+    if(pgfields == NULL) {
+	exitwitherror("Unable to malloc the output parameter list", 1);
     }
     for(i = 0; i < fieldcount; i++) {
-	formatstring[i] = NULL;
+	pgfields[i].formatstring = NULL;
     }
 
     /* Check for the terminator character */
@@ -263,7 +286,9 @@ int main(int argc, char **argv)
     }
 
     /* Encapsulate the whole process in a transaction */
-    printf("BEGIN;\n");
+    if(usetransaction) {
+	printf("BEGIN;\n");
+    }
 
     /* Drop the table if requested */
     if(usedroptable) {
@@ -276,15 +301,18 @@ int main(int argc, char **argv)
 	printf(" %s; SET statement_timeout=0;\n", tablename);
     }
 
-    /* Generate the create table statement */
-    printf("CREATE TABLE %s (", tablename);
+    /* Generate the create table statement, do some sanity testing, and scan
+     * for a few additional output parameters.  This is an ugly loop that
+     * does lots of stuff, but extracting it into two or more loops with the
+     * same structure and the same switch-case block seemed even worse. */
+    if(usecreatetable) printf("CREATE TABLE %s (", tablename);
     printed = 0;
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
 	if(fields[fieldnum].type == '0') {
 	    continue;
 	}
-	if(printed) {
-	    printf(", ");
+	if(printed && usecreatetable) {
+	    if(usecreatetable) printf(", ");
 	}
 	else {
 	    printed = 1;
@@ -298,76 +326,76 @@ int main(int argc, char **argv)
 	*t = '\0';
 	    
 	 /* If the fieldname is a reserved word, rename it to start with */
-	 /* "filename_" */
+	 /* "tablename_" */
 	isreservedname = 0;
 	for(i = 0; RESERVEDWORDS[i]; i++ ) {
 	    if(!strcmp(fieldname, RESERVEDWORDS[i])) {
-		printf("%s_%s ", tablename, fieldname);
+		if(usecreatetable) printf("%s_%s ", tablename, fieldname);
 		isreservedname = 1;
 		break;
 	    }
 	}
 	if(!isreservedname) {
-	    printf("%s ", fieldname);
+	    if(usecreatetable) printf("%s ", fieldname);
 	}
 	switch(fields[fieldnum].type) {
 	case 'B':
 	    /* Precalculate this field's format string so that it doesn't
 	     * have to be done inside the main loop */
-	    if(asprintf(&formatstring[fieldnum], "%%.%dlf", fields[fieldnum].decimals) < 0) {
+	    if(asprintf(&pgfields[fieldnum].formatstring, "%%.%dlf", fields[fieldnum].decimals) < 0) {
 		exitwitherror("Unable to allocate a format string", 1);
 	    }
-	    printf("DOUBLE PRECISION");
+	    if(usecreatetable) printf("DOUBLE PRECISION");
 	    break;
 	case 'C':
-	    printf("VARCHAR(%d)", fields[fieldnum].length);
+	    if(usecreatetable) printf("VARCHAR(%d)", fields[fieldnum].length);
 	    break;
 	case 'D':
-	    printf("DATE");
+	    if(usecreatetable) printf("DATE");
 	    break;
 	case 'F':
-	    printf("NUMERIC(%d)", fields[fieldnum].decimals);
+	    if(usecreatetable) printf("NUMERIC(%d)", fields[fieldnum].decimals);
 	    break;
 	case 'G':
-	    printf("BYTEA");
+	    if(usecreatetable) printf("BYTEA");
 	    break;
 	case 'I':
-	    printf("INTEGER");
+	    if(usecreatetable) printf("INTEGER");
 	    break;
 	case 'L':
-	    printf("BOOLEAN"); 	/* Has been a smallint at some point in the past */
-	    break;
+	    /* This was a smallint at some point in the past */
+	    if(usecreatetable) printf("BOOLEAN");	    break;
 	case 'M':
 	    if(memofd == -1) {
 		printf("\n");
 		fprintf(stderr, "Table %s has memo fields, but couldn't open the related memo file\n", tablename);
 		exit(EXIT_FAILURE);
 	    }
-	    printf("TEXT");
+	    if(usecreatetable) printf("TEXT");
 	    /* Decide whether to use numeric or packed int memo block
 	     * number */
 	    if(fields[fieldnum].length == 4) {
-		memoblockstyle = PACKEDMEMOSTYLE;
+		pgfields[fieldnum].memonumbering = PACKEDMEMOSTYLE;
 	    } else if (fields[fieldnum].length == 10) {
-		memoblockstyle = NUMERICMEMOSTYLE;
+		pgfields[fieldnum].memonumbering = NUMERICMEMOSTYLE;
 	    } else {
 		exitwitherror("Unknown memo record number style", 0);
 	    }
 	    break;
 	case 'N':
-	    printf("TEXT");	/* Was a numeric at one point, but for our
-				 * purposes a text field is better because
-				 * there isn't a perfect overlap between
-				 * FoxPro and PostgreSQL numeric types */
+	    /* Was a numeric at one point, but for our purposes a text field
+	     * is better because there isn't a perfect overlap between
+	     * FoxPro and PostgreSQL numeric types */
+	    if(usecreatetable) printf("TEXT");
 	    break;
 	case 'T':
-	    printf("TIMESTAMP");
+	    if(usecreatetable) printf("TIMESTAMP");
 	    break;
 	case 'Y':
-	    printf("DECIMAL(4)");
+	    if(usecreatetable) printf("DECIMAL(4)");
 	    break;
 	default:
-	    printf("\n");
+	    if(usecreatetable) printf("\n");
 	    fprintf(stderr, "Unhandled field type: %c\n", fields[fieldnum].type);
 	    exit(EXIT_FAILURE);
 	}
@@ -375,7 +403,7 @@ int main(int argc, char **argv)
 	    longestfield = fields[fieldnum].length;
 	}
     }
-    printf(");\n");
+    if(usecreatetable) printf(");\n");
 
     /* Get PostgreSQL ready to receive lots of input */
     printf("\\COPY %s FROM STDIN\n", tablename);
@@ -418,7 +446,7 @@ int main(int argc, char **argv)
 		switch(fields[fieldnum].type) {
 		case 'B':
 		    /* Double floats */
-		    printf(formatstring[fieldnum], sdouble(bufoffset));
+		    printf(pgfields[fieldnum].formatstring, sdouble(bufoffset));
 		    break;
 		case 'C':
 		    /* Varchars */
@@ -469,9 +497,9 @@ int main(int argc, char **argv)
 		    break;
 		case 'M':
 		    /* Memos */
-		    if(memoblockstyle == PACKEDMEMOSTYLE) {
+		    if(pgfields[fieldnum].memonumbering == PACKEDMEMOSTYLE) {
 			memoblocknumber = slittleint32_t(bufoffset);
-		    } else if (memoblockstyle == NUMERICMEMOSTYLE) {
+		    } else {
 			memoblocknumber = 0;
 			s = bufoffset;
 			for(i = 0; i < 10; i++) {
@@ -536,7 +564,9 @@ int main(int argc, char **argv)
     printf("\\.\n");
 
     /* Until this point, no changes have been flushed to the database */
-    printf("COMMIT;\n");
+    if(usetransaction) {
+	printf("COMMIT;\n");
+    }
 
     /* Generate the indexes */
     for(i = optind + 1; i < argc; i++ ){
@@ -560,11 +590,11 @@ int main(int argc, char **argv)
     free(memofilename);
     free(fields);
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
-	if(formatstring[fieldnum] != NULL) {
-	    free(formatstring[fieldnum]);
+	if(pgfields[fieldnum].formatstring != NULL) {
+	    free(pgfields[fieldnum].formatstring);
 	}
     }
-    free(formatstring);
+    free(pgfields);
     fclose(dbffile);
     if(memomap != NULL) {
 	if(munmap(memomap, memostat.st_size) == -1) {

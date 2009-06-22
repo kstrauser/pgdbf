@@ -32,8 +32,8 @@
 /* Old versions of FoxPro (and probably other programs) store the memo file
  * record number in human-readable ASCII. Newer versions of FoxPro store it
  * as a 32-bit packed int. */
-#define PACKEDMEMOSTYLE 0
-#define NUMERICMEMOSTYLE 1
+#define NUMERICMEMOSTYLE 0
+#define PACKEDMEMOSTYLE 1
 
 static char staticbuf[STATICBUFFERSIZE + 1];
 
@@ -161,6 +161,12 @@ typedef struct
     char reserved2[504];
 } MEMOHEADER;
 
+typedef struct
+{
+    char *formatstring;
+    int   memonumbering;
+} PGFIELD;
+
 static void exitwitherror(const char *message, const int systemerror)
 {
     /* Print the given error message to stderr, then exit.  If systemerror
@@ -245,8 +251,15 @@ static void safeprintbuf(const char *buf, const size_t inputsize)
 /* Endian-specific code.  Define functions to convert input data to the
  * required form depending on the endianness of the host architecture. */
 
-#ifdef WORDS_BIGENDIAN
-static int64_t littleint64_t(const int64_t wrongend)
+/* Integer-to-integer */
+
+static int64_t nativeint64_t(const int64_t rightend)
+{
+    /* Leave a 64-bit integer alone */
+    return rightend;
+}
+
+static int64_t swappedint64_t(const int64_t wrongend)
 {
     /* Change the endianness of a 64-bit integer */
     return (int64_t) (((wrongend & 0xff00000000000000LL) >> 56) |
@@ -259,7 +272,13 @@ static int64_t littleint64_t(const int64_t wrongend)
 		      ((wrongend & 0x00000000000000ffLL) << 56));
 }
 
-static int32_t littleint32_t(const int32_t wrongend)
+static int32_t nativeint32_t(const int32_t rightend)
+{
+    /* Leave a 32-bit integer alone */
+    return rightend;
+}
+
+static int32_t swappedint32_t(const int32_t wrongend)
 {
     /* Change the endianness of a 32-bit integer */
     return (int32_t) (((wrongend & 0xff000000) >> 24) |
@@ -268,14 +287,38 @@ static int32_t littleint32_t(const int32_t wrongend)
 		      ((wrongend & 0x000000ff) << 24));
 }
 
-static int16_t littleint16_t(const int16_t wrongend)
+static int16_t nativeint16_t(const int16_t rightend)
+{
+    /* Leave a 16-bit integer alone */
+    return rightend;
+}
+
+static int16_t swappedint16_t(const int16_t wrongend)
 {
     /* Change the endianness of a 16-bit integer */
     return (int16_t) (((wrongend & 0xff00) >> 8) |
 		      ((wrongend & 0x00ff) << 8));
 }
 
-static int32_t sbigint32_t(const char *buf) 
+/* String-to-integer */
+
+static int64_t snativeint64_t(const char *buf) 
+{
+    /* Interpret the first 8 bytes of buf as a 64-bit int */
+    int64_t output;
+    memcpy(&output, buf, 8);
+    return output;
+}
+
+static int64_t sswappedint64_t(const char *buf)
+{
+    /* The byte-swapped version of snativeint64_t */
+    int64_t output;
+    memcpy(&output, buf, 8);
+    return swappedint64_t(output);
+}
+
+static int32_t snativeint32_t(const char *buf) 
 {
     /* Interpret the first 4 bytes of buf as a 32-bit int */
     int32_t output;
@@ -283,7 +326,15 @@ static int32_t sbigint32_t(const char *buf)
     return output;
 }
 
-static int16_t sbigint16_t(const char *buf) 
+static int32_t sswappedint32_t(const char *buf)
+{
+    /* The byte-swapped version of snativeint32_t */
+    int32_t output;
+    memcpy(&output, buf, 4);
+    return swappedint32_t(output);
+}
+
+static int16_t snativeint16_t(const char *buf) 
 {
     /* Interpret the first 2 bytes of buf as a 16-bit int */
     int16_t output;
@@ -291,25 +342,36 @@ static int16_t sbigint16_t(const char *buf)
     return output;
 }
 
-static int64_t slittleint64_t(const char *buf)
+static int16_t sswappedint16_t(const char *buf) 
 {
-    /* The byte-swapped version of sbigint64_t */
-    int64_t output;
-    memcpy(&output, buf, 8);
-    return littleint64_t(output);
+    /* The byte-swapped version of snativeint16_t */
+    int16_t output;
+    memcpy(&output, buf, 2);
+    return swappedint16_t(output);
 }
 
-static int32_t slittleint32_t(const char *buf)
-{
-    /* The byte-swapped version of sbigint32_t */
-    int32_t output;
-    memcpy(&output, buf, 4);
-    return littleint32_t(output);
-}
+#ifdef WORDS_BIGENDIAN
+#define bigint64_t     nativeint64_t
+#define littleint64_t  swappedint64_t
+
+#define bigint32_t     nativeint32_t
+#define littleint32_t  swappedint32_t
+
+#define bigint16_t     nativeint16_t
+#define littleint16_t  swappedint16_t
+
+#define sbigint64_t    snativeint64_t
+#define slittleint64_t sswappedint64_t
+
+#define sbigint32_t    snativeint32_t
+#define slittleint32_t sswappedint32_t
+
+#define sbigint16_t    snativeint16_t
+#define slittleint16_t sswappedint16_t
 
 static double sdouble(const char *buf)
 {
-    /* The byte-swapped version of snativedouble */
+    /* Doubles are stored as 64-bit little-endian, so swap ends */
     union 
     {
 	int64_t asint64;
@@ -320,49 +382,23 @@ static double sdouble(const char *buf)
     return inttodouble.asdouble;
 }
 #else
-static int32_t littleint32_t(const int32_t rightend)
-{
-    /* Leave a 32-bit integer alone */
-    return rightend;
-}
+#define bigint64_t     swappedint64_t
+#define littleint64_t  nativeint64_t
 
-static int16_t littleint16_t(const int16_t rightend)
-{
-    /* Leave a 16-bit integer alone */
-    return rightend;
-}
+#define bigint32_t     swappedint32_t
+#define littleint32_t  nativeint32_t
 
-static int32_t bigint32_t(const int32_t wrongend)
-{
-    /* Change the endianness of a 32-bit integer */
-    return (int32_t) (((wrongend & 0xff000000) >> 24) |
-		      ((wrongend & 0x00ff0000) >> 8)  |
-		      ((wrongend & 0x0000ff00) << 8)  |
-		      ((wrongend & 0x000000ff) << 24));
-}
+#define bigint16_t     swappedint16_t
+#define littleint16_t  nativeint16_t
 
-static int16_t bigint16_t(const int16_t wrongend)
-{
-    /* Change the endianness of a 16-bit integer */
-    return (int16_t) (((wrongend & 0xff00) >> 8) |
-		      ((wrongend & 0x00ff) << 8));
-}
+#define sbigint64_t    sswappedint64_t
+#define slittleint64_t snativeint64_t
 
-static int64_t slittleint64_t(const char *buf) 
-{
-    /* Interpret the first 8 bytes of buf as a 64-bit int */
-    int64_t output;
-    memcpy(&output, buf, 8);
-    return output;
-}
+#define sbigint32_t    sswappedint32_t
+#define slittleint32_t snativeint32_t
 
-static int32_t slittleint32_t(const char *buf) 
-{
-    /* Interpret the first 4 bytes of buf as a 32-bit int */
-    int32_t output;
-    memcpy(&output, buf, 4);
-    return output;
-}
+#define sbigint16_t    sswappedint16_t
+#define slittleint16_t snativeint16_t
 
 static double sdouble(const char *buf)
 {
@@ -372,19 +408,4 @@ static double sdouble(const char *buf)
     return output;
 }
 
-static int32_t sbigint32_t(const char *buf)
-{
-    /* The byte-swapped version of slittleint32_t */
-    int32_t output;
-    memcpy(&output, buf, 4);
-    return bigint32_t(output);
-}
-
-static int16_t sbigint16_t(const char *buf) 
-{
-    /* The byte-swapped version of slittleint16_t */
-    int16_t output;
-    memcpy(&output, buf, 2);
-    return bigint16_t(output);
-}
 #endif
