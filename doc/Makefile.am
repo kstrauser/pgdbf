@@ -1,1 +1,1 @@
-man1_MANS = pgdbf.man
+dist_man1_MANS = pgdbf.man
