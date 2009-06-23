@@ -73,20 +73,30 @@ COMMIT;
 CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
   </pre>
 
-  <p>Note that the entire process is wrapped inside a transaction so that other clients will have access to the old data until the transaction is completed. </p>
+  <p>Note that the entire process is usually wrapped inside a transaction so that other clients will have access to the old data until the transaction is completed. </p>
 
   <h3>Command Line</h3>
 
-  <p><tt>Usage: pgdbf [-dDeh] filename [indexcolumn ...]</tt></p>
+  <p><tt>Usage: pgdbf [-cCdDehtT] filename [indexcolumn ...]</tt></p>
 
   <p>The only required argument is the filename of the table to be converted.  If the table has a memo field, then the memo file must be in the same directory and have the same filename root but with the extension <tt>.fpt</tt>.  For example, if converting <tt>/tmp/Invoice.dbf</tt>, then the memo file must be named <tt>/tmp/Invoice.fpt</tt>.</p>
 
+  <p>The "-h" flag prints this usage information and then exits.</p>
+
+  <p>The "-c" flag cause PgDBF to print a "CREATE TABLE" statement to make a table with similar datatypes and column names as the DBF file.  This is the default behavior.</p>
+
+  <p>The "-C" suppresses the "CREATE TABLE" statement.</p>
+
   <p>The "-d" flag causes PgDBF to print a "DROP TABLE" statement before the "CREATE TABLE" command.  This is useful for replacing the contents of a table that already exists in PostgreSQL.  This is the default behavior.</p>
 
-  <p>The "-D" flag causes PgDBF <em>not</em> to print the "DROP TABLE" statement.</p>
+  <p>The "-D" flag causes PgDBF <em>not</em> to print the "DROP TABLE" statement.  If "-C" was used to disable the "CREATE TABLE" statement, then "-D" will be silently ignored (as it makes no sense to drop a table and then try to insert into it).</p>
 
   <p>The "-e" flag changes the "DROP TABLE" statement to "DROP TABLE IF EXISTS".  PostgreSQL will return an error when attempting to drop a table that does not exist.  Version 8.2 and newer can use the "IF EXISTS" modifier to drop the table only if it's already defined, and otherwise continue without error.</p>
   
+  <p>The "-t" flag wraps the entire script in a transaction.  This is the default behavior.</p>
+
+  <p>The "-T" flag removes the wrapper transaction.  This is generally not a good idea as it causes the table to be completely empty at times.</p>
+
   <p>Indices are automatically created if you specify the columns (or expressions!) you want indexed on the command line. For example, </p>
 
   <pre>
@@ -117,6 +127,7 @@ $ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
   <p>Special thanks to the following for suggestions and bug reports:</p>
 
   <ul>
+    <li>John Easton</li>
     <li>Alan Polinsky</li>
     <li>Fabrízio de Royes Mello</li>
     <li>Gordon Sweet</li>

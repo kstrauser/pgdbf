@@ -1,0 +1,123 @@
+.TH PGDBF 1 "June 22 2009" "Version 0.4.4" "PGDBF(1)"
+.SH NAME
+pgdbf \- convert XBase / FoxPro tables to PostgreSQL
+
+.SH SYNOPSIS
+.B pgdbf
+[\-cCdDehtT] filename [indexcolumn ...]
+
+.SH DESCRIPTION
+PgDBF is a program for converting XBase databases - particularly FoxPro
+tables with memo files - into a format that PostgreSQL can directly import.
+It's a compact C project with no dependencies other than standard Unix
+libraries.  While the project is relatively tiny and simple, it's also
+heavily optimized via profiling - routine benchmark were many times faster
+than with other Open Source programs.  In fact, even on slower systems,
+conversions are typically limited by hard drive speed.
+.P
+.SS Features
+PgDBF was designed with a few core principles:
+.P
+.RS
+.B
+Simplicity.
+This code should be understandable by anyone who wants to hack it.
+.P
+.B
+Robustness.
+Every syscall is checked for success.
+.P
+.B
+Speed.
+PgDBF was born to be the fastest conversion available anywhere.
+.P
+.B
+Completeness.
+It has full support for FoxPro memo files.
+.P
+.B
+Portability.
+PgDBF runs on 32- and 64-bit systems, and both little-endian (eg x86) and
+big-endian (eg PowerPC) architectures.
+.RE
+
+.SS Performance
+PgDBF's speed is generally limited by how fast it can read your hard drives.  A striped RAID of quick disks can keep PgDBF pretty well fed on a single-processor system.  One problem area is with memo files, which may become very internally fragmented as memo fields are created, deleted, and updated.  For best results, consider placing the DBF and FPT files on a RAM drive so that there's no seek penalty as there is with spinning hard drives, or using a filesystem such as ZFS that caches aggressively.
+
+One particularly fragmented 160MB table with memo fields used to take over
+three minutes on a FreeBSD UFS2 filesystem.  Moving the files to a RAM disk
+dropped the conversion time to around 1.2 seconds, a rate of about 130MB/s.
+
+.SH OPTIONS
+.TP
+.B -c
+Generate a
+.B "CREATE TABLE"
+statement to make a table with similar datatypes and column names as the DBF
+file.  Default.
+.TP
+.B -C
+Suppress the
+.B CREATE TABLE
+statement.
+.TP
+.B -d
+Generate a
+.B "DROP TABLE"
+statement before the
+.B "CREATE TABLE"
+statement. This is useful for replacing the contents of a table that already
+exists in PostgreSQL.  Default.
+.TP
+.B -D
+Suppress the
+.B "DROP TABLE"
+statement.
+.TP
+.B -e
+Change the
+.B "DROP TABLE"
+statement to
+.B "DROP TABLE IF EXISTS"
+so that newer versions of PostgreSQL (8.2+) will only attempt to drop the
+table if it's already defined.  PostgreSQL will return an error when
+attempting to drop a table that does not exist unless
+.B "IF EXISTS"
+is used.
+.TP
+.B -h
+Print a help message, then exit.
+.TP
+.B -t
+Wrap the entire script in a transaction.  Default.
+.TP
+.B -T
+Remove the wrapper transaction.  This is generally not a good idea as it
+causes the table to be completely empty at times.
+
+.SH FILES
+If the table has a memo field, then the associated memo file must be in the
+same directory as the table file and have the same filename root but with
+the extension \fI.fpt\fP.  For example, if converting \fI/tmp/Invoice.dbf\fP,
+then the memo file must be named \fI/tmp/Invoice.fpt\fP.
+
+.SH BUGS
+When multiple incompatible interpretations of a type are available, such as
+the
+.B B
+type which can mean
+.I "binary object"
+in dBASE V or
+.I "double-precision float"
+in FoxPro, PgDBF currently uses the FoxPro interpretation.
+
+Most XBase datatypes are supported, but some are not (yet).  As of this
+writing, PgDBF can handle \fIboolean\fP, \fIcurrency\fP, \fIdate\fP,
+\fIdouble-precision float\fP, \fIfloat\fP, \fIgeneral\fP (although only
+outputs empty strings; it's unclear how to resolve OLE objects at this
+time), \fIinteger\fP, \fImemo\fP, \fInumeric\fP, \fItimestamp\fP, and
+\fIvarchar\fP fields.  If you need other datatypes, send a small sample
+database for testing.
+
+.SH AUTHOR
+Kirk Strauser <kstrauser@users.sourceforge.net>

@@ -32,5 +32,6 @@ AC_FUNC_MMAP
 AC_CHECK_FUNCS([munmap])
 
 AC_CONFIG_FILES([Makefile
+                 doc/Makefile
                  src/Makefile])
 AC_OUTPUT
