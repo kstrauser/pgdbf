@@ -5,4 +5,4 @@ upload: *.html *.png *.css favicon.ico pgdbf.1.html
 	touch upload
 
 pgdbf.1.html: ../doc/pgdbf.man
-	man2html $? > pgdbf.1.html
+	man2html < $? > pgdbf.1.html

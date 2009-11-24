@@ -52,6 +52,15 @@ piwik_log(piwik_action_name, piwik_idsite, piwik_url);
 
   <p>The project is available at <a href="http://sourceforge.net/project/showfiles.php?group_id=257285">the SourceForge download page</a>.</p>
 
+  <h2>Release Notes</h2>
+
+  <p>Version 0.5.0 (November 24, 2009) is not a drop-in replacement for older versions.  Specifically:</p>
+
+  <ol>
+    <li>It no longer tries to guess the names of memofiles.  If a table has a memofile, it must be specified with the "-m" command line argument.</li>
+    <li>The "N" (numeric) and "F" (float) datatypes now emit \N (NULL) instead of empty strings.</li>
+  </ol>
+  
   <h2>Building and Installation</h2>
 
   <p><tt>$ ./configure; make; make install</tt></p>
@@ -77,7 +86,7 @@ CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
 
   <h3>Command Line</h3>
 
-  <p><tt>Usage: pgdbf [-cCdDehtT] filename [indexcolumn ...]</tt></p>
+  <p><tt>Usage: pgdbf [-cCdDehtT] [-m memofilename] filename [indexcolumn ...]</tt></p>
 
   <p>The only required argument is the filename of the table to be converted.  If the table has a memo field, then the memo file must be in the same directory and have the same filename root but with the extension <tt>.fpt</tt>.  For example, if converting <tt>/tmp/Invoice.dbf</tt>, then the memo file must be named <tt>/tmp/Invoice.fpt</tt>.</p>
 
@@ -92,6 +101,8 @@ CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
   <p>The "-D" flag causes PgDBF <em>not</em> to print the "DROP TABLE" statement.  If "-C" was used to disable the "CREATE TABLE" statement, then "-D" will be silently ignored (as it makes no sense to drop a table and then try to insert into it).</p>
 
   <p>The "-e" flag changes the "DROP TABLE" statement to "DROP TABLE IF EXISTS".  PostgreSQL will return an error when attempting to drop a table that does not exist.  Version 8.2 and newer can use the "IF EXISTS" modifier to drop the table only if it's already defined, and otherwise continue without error.</p>
+
+  <p>Use the "-m" argument to specify the memofile (if any) associated with the table.</p>
   
   <p>The "-t" flag wraps the entire script in a transaction.  This is the default behavior.</p>
 
@@ -136,7 +147,7 @@ $ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
   <hr>
 
   <p>
-  <!-- hhmts start --> Last modified: Thu Jun 11 15:44:08 CDT 2009 <!-- hhmts end -->
+  <!-- hhmts start --> Last modified: Tue Nov 24 13:31:08 CST 2009 <!-- hhmts end -->
   <br>
   <a href="http://sourceforge.net/projects/pgdbf"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=257285&amp;type=11" width="120" height="30" alt="Get PgDBF at SourceForge.net. Fast, secure and Free Open Source software downloads"></a>
   <a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-html401-blue" alt="Valid HTML 4.01 Strict" height="31" width="88"></a>

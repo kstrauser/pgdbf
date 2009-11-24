@@ -1,10 +1,10 @@
-.TH PGDBF 1 "June 22 2009" "Version 0.4.4"
+.TH PGDBF 1 "November 24 2009" "Version 0.5.0"
 .SH NAME
 pgdbf \- convert XBase / FoxPro tables to PostgreSQL
 
 .SH SYNOPSIS
 .B pgdbf
-[\-cCdDehtT] filename [indexcolumn ...]
+[\-cCdDehtT] [-m memofile] filename [indexcolumn ...]
 
 .SH DESCRIPTION
 PgDBF is a program for converting XBase databases - particularly FoxPro
@@ -87,6 +87,9 @@ is used.
 .TP
 .B -h
 Print a help message, then exit.
+.TP
+.B -m memofile
+The name of the associated memo file (if necessary).
 .TP
 .B -t
 Wrap the entire script in a transaction.  Default.

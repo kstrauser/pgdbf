@@ -52,13 +52,13 @@ int main(int argc, char **argv)
     uint8_t        terminator;     /* Testing for terminator bytes */
 
     /* Describing the memo file */
-    char        *memofilename;
+    char        *memofilename = NULL;
     int          memofd;
     struct stat  memostat;
     int32_t      memoblocknumber;
 
     void        *memomap = NULL; /* Pointer to the mmap of the memo file */
-    void        *memorecord;	 /* Pointer to the current memo block */
+    char        *memorecord;	 /* Pointer to the current memo block */
     size_t       memoblocksize = 0;  /* The length of each memo block */
 
     /* Processing and misc */
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
     char  fieldname[11];
 
     /* Attempt to parse any command line arguments */
-    while((opt = getopt(argc, argv, "cCdDehtT")) != -1) {
+    while((opt = getopt(argc, argv, "cCdDehm:tT")) != -1) {
 	switch(opt) {
 	case 'c':
 	    usecreatetable = 1;
@@ -115,6 +115,9 @@ int main(int argc, char **argv)
 	    break;
 	case 'e':
 	    useifexists = 1;
+	    break;
+	case 'm':
+ 	    memofilename = optarg;
 	    break;
 	case 't':
 	    usetransaction = 1;
@@ -138,7 +141,7 @@ int main(int argc, char **argv)
     }
     
     if(optexitcode != -1) {
-	printf("Usage: %s [-cCdDehtT] filename [indexcolumn ...]\n", PACKAGE);
+	printf("Usage: %s [-cCdDehtT] [-m memofilename] filename [indexcolumn ...]\n", PACKAGE);
 	printf("Convert the named XBase file into PostgreSQL format\n");
 	printf("\n");
 	printf("  -c  issue a 'CREATE TABLE' command to create the table (default)\n");
@@ -147,10 +150,11 @@ int main(int argc, char **argv)
 	printf("  -D  do not issue a 'DROP TABLE' command\n");
 	printf("  -e  use 'IF EXISTS' when dropping tables (PostgreSQL 8.2+)\n");
 	printf("  -h  print this message and exit\n");
+	printf("  -m  the name of the associated memo file (if necessary)\n");
 	printf("  -t  wrap a transaction around the entire series of statements (default)\n");
 	printf("  -T  do not use an enclosing transaction\n");
 	printf("\n");
-	printf("%s is copyright 2009 The Day Companies.\n", PACKAGE_STRING);
+	printf("%s is copyright 2009 Daycos.\n", PACKAGE_STRING);
 	printf("License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");
 	printf("This is free software: you are free to change and redistribute it.\n");
 	printf("There is NO WARRANTY, to the extent permitted by law.\n");
@@ -261,20 +265,12 @@ int main(int argc, char **argv)
 	exitwitherror("At an unexpected offset in the DBF file", 0);
     }
 
-    /* The memofile's name is the same as the DBF file's name, but ending in
-     * .fpt */
-    memofilename = malloc(strlen(dbffilename) + 4);
-    if(memofilename == NULL) {
-	exitwitherror("Unable to allocate the memo filename buffer", 1);
-    }
-    strcpy(memofilename, dbffilename);
-    for(s = memofilename + strlen(memofilename) - 1;
-	*s != '.' && s != memofilename;
-	s--);
-    s++;
-    strcpy(s, "fpt");
-    memofd = open(memofilename, O_RDONLY);
-    if(memofd != -1) {
+    /* Open the given memofile */
+    if(memofilename != NULL) {
+	memofd = open(memofilename, O_RDONLY);
+	if(memofd == -1) {
+	    exitwitherror("Unable to open the memofile", 1);
+	}
 	if (fstat(memofd, &memostat) == -1) {
 	    exitwitherror("Unable to fstat the memofile", 1);
 	}
@@ -282,7 +278,11 @@ int main(int argc, char **argv)
 	if(memomap == MAP_FAILED) {
 	    exitwitherror("Unable to mmap the memofile", 1);
 	}
-	memoblocksize = (size_t) sbigint16_t(((MEMOHEADER*) memomap)->blocksize);
+	if(dbfheader.signature == (int8_t) 0x83) {
+	    memoblocksize = 512;
+	} else {
+	    memoblocksize = (size_t) sbigint16_t(((MEMOHEADER*) memomap)->blocksize);
+	}
     }
 
     /* Encapsulate the whole process in a transaction */
@@ -366,7 +366,7 @@ int main(int argc, char **argv)
 	    /* This was a smallint at some point in the past */
 	    if(usecreatetable) printf("BOOLEAN");	    break;
 	case 'M':
-	    if(memofd == -1) {
+	    if(memofilename == NULL) {
 		printf("\n");
 		fprintf(stderr, "Table %s has memo fields, but couldn't open the related memo file\n", tablename);
 		exit(EXIT_FAILURE);
@@ -513,7 +513,12 @@ int main(int argc, char **argv)
 		    }
 		    if(memoblocknumber) {
 			memorecord = memomap + memoblocksize * memoblocknumber;
-			safeprintbuf(memorecord + 8, sbigint32_t(memorecord + 4));
+			if(dbfheader.signature == (int8_t) 0x83) {
+			    t = strchr(memorecord, 0x1A);
+			    safeprintbuf(memorecord, t - memorecord);
+			} else {
+			    safeprintbuf(memorecord + 8, sbigint32_t(memorecord + 4));
+			}
 		    }
 		    break;
 		case 'F':
@@ -526,7 +531,11 @@ int main(int argc, char **argv)
 		    while(*s == ' ') {
 			s++;
 		    }
-		    printf("%s", s);
+		    if(*s == '\0') {
+			printf("\\N");
+		    } else {
+			printf("%s", s);
+		    }
 		    break;
 		case 'T':
 		    /* Timestamps */
@@ -587,7 +596,6 @@ int main(int argc, char **argv)
     }
 
     free(tablename);
-    free(memofilename);
     free(fields);
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
 	if(pgfields[fieldnum].formatstring != NULL) {
