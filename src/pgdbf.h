@@ -1,5 +1,5 @@
 /* PgDBF - Quickly convert DBF files to PostgreSQL                       */
-/* Copyright (C) 2008,2009  Kirk Strauser <kirk@daycos.com>              */
+/* Copyright (C) 2008-2010  Kirk Strauser <kirk@daycos.com>              */
 /*                                                                       */
 /* This program is free software: you can redistribute it and/or modify  */
 /* it under the terms of the GNU General Public License as published by  */
@@ -200,6 +200,7 @@ static void safeprintbuf(const char *buf, const size_t inputsize)
 	    break;
 	}
     }
+
     /* If there aren't any non-space characters, skip the output part */
     if(s < buf) {
 	return;

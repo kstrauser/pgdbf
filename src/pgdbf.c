@@ -1,5 +1,5 @@
 /* PgDBF - Quickly convert DBF files to PostgreSQL                       */
-/* Copyright (C) 2008,2009  Kirk Strauser <kirk@daycos.com>              */
+/* Copyright (C) 2008-2010  Kirk Strauser <kirk@daycos.com>              */
 /*                                                                       */
 /* This program is free software: you can redistribute it and/or modify  */
 /* it under the terms of the GNU General Public License as published by  */
@@ -91,30 +91,36 @@ int main(int argc, char **argv)
 				 * program will stop. */
     int     usecreatetable = 1;
     int     usedroptable = 1;
-    int     useifexists = 0;
+    int     useifexists = 1;
     int     usetransaction = 1;
+    int     usetruncatetable = 0;
 
     /* Describing the PostgreSQL table */
     char *tablename;
     char  fieldname[11];
 
     /* Attempt to parse any command line arguments */
-    while((opt = getopt(argc, argv, "cCdDehm:tT")) != -1) {
+    while((opt = getopt(argc, argv, "cCdDeEhm:tTuU")) != -1) {
 	switch(opt) {
 	case 'c':
 	    usecreatetable = 1;
+	    usetruncatetable = 0;
 	    break;
 	case 'C':
 	    usecreatetable = 0;
 	    break;
 	case 'd':
 	    usedroptable = 1;
+	    usetruncatetable = 0;
 	    break;
 	case 'D':
 	    usedroptable = 0;
 	    break;
 	case 'e':
 	    useifexists = 1;
+	    break;
+	case 'E':
+	    useifexists = 0;
 	    break;
 	case 'm':
  	    memofilename = optarg;
@@ -124,6 +130,14 @@ int main(int argc, char **argv)
 	    break;
 	case 'T':
 	    usetransaction = 0;
+	    break;
+	case 'u':
+	    usetruncatetable = 1;
+	    usecreatetable = 0;
+	    usedroptable = 0;
+	    break;
+	case 'U':
+	    usetruncatetable = 0;
 	    break;
 	case 'h':
 	default:
@@ -141,19 +155,23 @@ int main(int argc, char **argv)
     }
     
     if(optexitcode != -1) {
-	printf("Usage: %s [-cCdDehtT] [-m memofilename] filename [indexcolumn ...]\n", PACKAGE);
+	printf("Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n", PACKAGE);
 	printf("Convert the named XBase file into PostgreSQL format\n");
 	printf("\n");
 	printf("  -c  issue a 'CREATE TABLE' command to create the table (default)\n");
 	printf("  -C  do not issue a 'CREATE TABLE' command\n");
 	printf("  -d  issue a 'DROP TABLE' command before creating the table (default)\n");
 	printf("  -D  do not issue a 'DROP TABLE' command\n");
-	printf("  -e  use 'IF EXISTS' when dropping tables (PostgreSQL 8.2+)\n");
+	printf("  -e  use 'IF EXISTS' when dropping tables (PostgreSQL 8.2+) (default)\n");
+	printf("  -E  do not use 'IF EXISTS' when dropping tables (PostgreSQL 8.1 and older)\n");
 	printf("  -h  print this message and exit\n");
 	printf("  -m  the name of the associated memo file (if necessary)\n");
 	printf("  -t  wrap a transaction around the entire series of statements (default)\n");
 	printf("  -T  do not use an enclosing transaction\n");
+	printf("  -u  issue a 'TRUNCATE' command before inserting data\n");
+	printf("  -U  do not issue a 'TRUNCATE' command before inserting data (default)\n");
 	printf("\n");
+	printf("Using '-u' implies '-C -D'. Using '-c' or '-d' implies '-U'.\n");
 	printf("%s is copyright 2009 Daycos.\n", PACKAGE_STRING);
 	printf("License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");
 	printf("This is free software: you are free to change and redistribute it.\n");
@@ -404,6 +422,11 @@ int main(int argc, char **argv)
 	}
     }
     if(usecreatetable) printf(");\n");
+
+    /* Truncate the table if requested */
+    if(usetruncatetable) {
+	printf("TRUNCATE TABLE %s;\n", tablename);
+    }
 
     /* Get PostgreSQL ready to receive lots of input */
     printf("\\COPY %s FROM STDIN\n", tablename);

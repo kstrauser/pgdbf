@@ -1,10 +1,10 @@
-.TH PGDBF 1 "November 24 2009" "Version 0.5.0"
+.TH PGDBF 1 "March 9 2010" "Version 0.5.1"
 .SH NAME
 pgdbf \- convert XBase / FoxPro tables to PostgreSQL
 
 .SH SYNOPSIS
 .B pgdbf
-[\-cCdDehtT] [-m memofile] filename [indexcolumn ...]
+[\-cCdDeEhtTuU] [-m memofile] filename [indexcolumn ...]
 
 .SH DESCRIPTION
 PgDBF is a program for converting XBase databases - particularly FoxPro
@@ -25,7 +25,7 @@ This code should be understandable by anyone who wants to hack it.
 .P
 .B
 Robustness.
-Every syscall is checked for success.
+Every syscall that might possibly fail is checked for success.
 .P
 .B
 Speed.
@@ -42,17 +42,27 @@ big-endian (eg PowerPC) architectures.
 .RE
 
 .SS Performance
-PgDBF's speed is generally limited by how fast it can read your hard drives.  A striped RAID of quick disks can keep PgDBF pretty well fed on a single-processor system.  One problem area is with memo files, which may become very internally fragmented as memo fields are created, deleted, and updated.  For best results, consider placing the DBF and FPT files on a RAM drive so that there's no seek penalty as there is with spinning hard drives, or using a filesystem such as ZFS that caches aggressively.
+PgDBF's speed is generally limited by how fast it can read your hard drives.
+A striped RAID of quick disks can keep PgDBF pretty well fed on a
+single-processor system.  One problem area is with memo files, which may
+become very internally fragmented as memo fields are created, deleted, and
+updated.  For best results, consider placing the DBF and FPT files on a RAM
+drive so that there's no seek penalty as there is with spinning hard drives,
+or using a filesystem such as ZFS that caches aggressively.
 
 One particularly fragmented 160MB table with memo fields used to take over
 three minutes on a FreeBSD UFS2 filesystem.  Moving the files to a RAM disk
-dropped the conversion time to around 1.2 seconds, a rate of about 130MB/s.
+dropped the conversion time to around 1.2 seconds.
+
+A certain test table used during development comprises a 280MB DBF file and
+a 660MB memo file. PgDBF converts this to a 1.3 million row PostgreSQL table
+in about 11 seconds, or at a rate of almost 120,000 rows per second.
 
 .SH OPTIONS
 .TP
 .B -c
 Generate a
-.B "CREATE TABLE"
+.B CREATE TABLE
 statement to make a table with similar datatypes and column names as the DBF
 file.  Default.
 .TP
@@ -63,27 +73,34 @@ statement.
 .TP
 .B -d
 Generate a
-.B "DROP TABLE"
+.B DROP TABLE
 statement before the
-.B "CREATE TABLE"
+.B CREATE TABLE
 statement. This is useful for replacing the contents of a table that already
 exists in PostgreSQL.  Default.
 .TP
 .B -D
 Suppress the
-.B "DROP TABLE"
+.B DROP TABLE
 statement.
 .TP
 .B -e
 Change the
-.B "DROP TABLE"
+.B DROP TABLE
 statement to
-.B "DROP TABLE IF EXISTS"
+.B DROP TABLE IF EXISTS
 so that newer versions of PostgreSQL (8.2+) will only attempt to drop the
 table if it's already defined.  PostgreSQL will return an error when
 attempting to drop a table that does not exist unless
-.B "IF EXISTS"
-is used.
+.B IF EXISTS
+is used.  Default.
+.TP
+.B -E
+Do not use the
+.B IF EXISTS
+modifier to
+.B DROP TABLE
+for compatibility with versions of PostgreSQL older than 8.2.
 .TP
 .B -h
 Print a help message, then exit.
@@ -95,14 +112,48 @@ The name of the associated memo file (if necessary).
 Wrap the entire script in a transaction.  Default.
 .TP
 .B -T
-Remove the wrapper transaction.  This is generally not a good idea as it
-causes the table to be completely empty at times.
+Remove the wrapper transaction.  This is generally not a good idea as it can
+cause the table to appear completely empty to other clients during the data
+copying phase.  If the entire process occurs inside a transaction, the
+update is atomic and other clients will have full access to all data in the
+table at all times.
+.TP
+.B -u
+Issue a
+.B TRUNCATE TABLE
+statement to clear the contents of a table before copying data into it.
+.TP
+.B -U
+Suppress the
+.B TRUNCATE TABLE
+statement.  Default.
 
-.SH FILES
-If the table has a memo field, then the associated memo file must be in the
-same directory as the table file and have the same filename root but with
-the extension \fI.fpt\fP.  For example, if converting \fI/tmp/Invoice.dbf\fP,
-then the memo file must be named \fI/tmp/Invoice.fpt\fP.
+.SH "OPTION NOTES"
+The
+.B -c
+and
+.B -d
+arguments are incompatible with
+.B -u
+as it's pointless to truncate a newly-created table. Specifying
+.B -c
+or
+.B -d
+will disable the
+.B TRUNCATE TABLE
+statement as though
+.B -U
+was given. Similarly, using the
+.B -u
+argument will disable the
+.B CREATE TABLE
+and
+.B DROP TABLE
+statements as if
+.B -C
+and
+.B -D
+were given.
 
 .SH BUGS
 When multiple incompatible interpretations of a type are available, such as

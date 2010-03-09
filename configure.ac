@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.62])
-AC_INIT([PgDBF], [0.5.0], [kirk@daycos.com])
+AC_PREREQ(2.62)
+AC_INIT([PgDBF], [0.5.1], [kirk@daycos.com])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
@@ -29,7 +29,7 @@ AC_C_BIGENDIAN
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([munmap])
+AC_CHECK_FUNCS([munmap strchr])
 
 AC_ARG_ENABLE([installdocs],
 [  --enable-installdocs    install documentation],

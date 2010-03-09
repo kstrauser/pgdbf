@@ -46,13 +46,17 @@ piwik_log(piwik_action_name, piwik_idsite, piwik_url);
 
   <p>PgDBF's speed is generally limited by how fast it can read your hard drives.  A striped RAID of quick disks can keep PgDBF pretty well fed on a single-processor system.  One problem area is with memo files, which may become very internally fragmented as memo fields are created, deleted, and updated.  For best results, consider placing the DBF and FPT files on a RAM drive so that there's no seek penalty as there is with spinning hard drives, or using a filesystem such as ZFS that caches aggressively.</p>
 
-  <p>One particularly fragmented 160MB table with memo fields used to take over three minutes on a FreeBSD UFS2 filesystem.  Moving the files to a RAM disk dropped the conversion time to around 1.2 seconds, a rate of about 130MB/s.</p>
+  <p>One particularly fragmented 160MB table with memo fields used to take over three minutes on a FreeBSD UFS2 filesystem.  Moving the files to a RAM disk dropped the conversion time to around 1.2 seconds.</p>
+
+  <p>A certain test table used during development comprises a 280MB DBF file and a 660MB memo file. PgDBF converts this to a 1.3 million row PostgreSQL table in about 11 seconds, or at a rate of almost 120,000 rows per second.</p>
   
   <h2>Downloading</h2>
 
   <p>The project is available at <a href="http://sourceforge.net/project/showfiles.php?group_id=257285">the SourceForge download page</a>.</p>
 
   <h2>Release Notes</h2>
+
+  <p>Version 0.5.1 (March 9, 2010) enables the "IF EXISTS" (the "-e" option) to "DROP TABLE".  If you are using PgDBF with a version of PostgreSQL older than 8.2 (which was released in December 2006), you will need to use the "-E" flag to disable it.  Also adds "-u" and "-U" flags to control whether a "TRUNCATE TABLE" statement is issued to clear the table before copying data.</p>
 
   <p>Version 0.5.0 (November 24, 2009) is not a drop-in replacement for older versions.  Specifically:</p>
 
@@ -100,13 +104,19 @@ CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
 
   <p>The "-D" flag causes PgDBF <em>not</em> to print the "DROP TABLE" statement.  If "-C" was used to disable the "CREATE TABLE" statement, then "-D" will be silently ignored (as it makes no sense to drop a table and then try to insert into it).</p>
 
-  <p>The "-e" flag changes the "DROP TABLE" statement to "DROP TABLE IF EXISTS".  PostgreSQL will return an error when attempting to drop a table that does not exist.  Version 8.2 and newer can use the "IF EXISTS" modifier to drop the table only if it's already defined, and otherwise continue without error.</p>
+  <p>The "-e" flag changes the "DROP TABLE" statement to "DROP TABLE IF EXISTS".  PostgreSQL will return an error when attempting to drop a table that does not exist.  Version 8.2 and newer can use the "IF EXISTS" modifier to drop the table only if it's already defined, and otherwise continue without error. This is the default.</p>
+
+  <p>The "-E" flag disables the "IF EXISTS" modifier to "DROP TABLE" for compatibility with old versions of PostgreSQL.</p>
 
   <p>Use the "-m" argument to specify the memofile (if any) associated with the table.</p>
   
   <p>The "-t" flag wraps the entire script in a transaction.  This is the default behavior.</p>
 
   <p>The "-T" flag removes the wrapper transaction.  This is generally not a good idea as it causes the table to be completely empty at times.</p>
+
+  <p>The "-u" flag generates a "TRUNCATE TABLE" statement to quickly empty a table without dropping and re-creating it.</p>
+
+  <p>"-U" disables the "TRUNCATE TABLE" statement.
 
   <p>Indices are automatically created if you specify the columns (or expressions!) you want indexed on the command line. For example, </p>
 
@@ -147,7 +157,7 @@ $ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
   <hr>
 
   <p>
-  <!-- hhmts start --> Last modified: Tue Nov 24 13:31:08 CST 2009 <!-- hhmts end -->
+  <!-- hhmts start --> Last modified: Tue Mar 09 10:20:42 CST 2010 <!-- hhmts end -->
   <br>
   <a href="http://sourceforge.net/projects/pgdbf"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=257285&amp;type=11" width="120" height="30" alt="Get PgDBF at SourceForge.net. Fast, secure and Free Open Source software downloads"></a>
   <a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-html401-blue" alt="Valid HTML 4.01 Strict" height="31" width="88"></a>
