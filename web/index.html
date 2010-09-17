@@ -56,7 +56,7 @@ piwik_log(piwik_action_name, piwik_idsite, piwik_url);
 
   <h2>Release Notes</h2>
 
-  <p>Version 0.5.1 (March 9, 2010) enables the "IF EXISTS" (the "-e" option) to "DROP TABLE".  If you are using PgDBF with a version of PostgreSQL older than 8.2 (which was released in December 2006), you will need to use the "-E" flag to disable it.  Also adds "-u" and "-U" flags to control whether a "TRUNCATE TABLE" statement is issued to clear the table before copying data.</p>
+  <p>Version 0.5.1 (March 9, 2010) enables the "IF EXISTS" (the "-e" option) to "DROP TABLE" by default.  If you are using PgDBF with a version of PostgreSQL older than 8.2 (which was released in December 2006), you will need to use the "-E" flag to disable it.  Also adds "-u" and "-U" flags to control whether a "TRUNCATE TABLE" statement is issued to clear the table before copying data.</p>
 
   <p>Version 0.5.0 (November 24, 2009) is not a drop-in replacement for older versions.  Specifically:</p>
 
@@ -110,13 +110,13 @@ CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
 
   <p>Use the "-m" argument to specify the memofile (if any) associated with the table.</p>
   
-  <p>The "-t" flag wraps the entire script in a transaction.  This is the default behavior.</p>
+  <p>The "-t" flag wraps the entire script in a transaction.  Since transaction commits are atomic, there will never be an instant in time where the table appears empty to other clients.  Instead, the old table data will seem to be instantaneously replaced with the new contents.  This is the default.</p>
 
   <p>The "-T" flag removes the wrapper transaction.  This is generally not a good idea as it causes the table to be completely empty at times.</p>
 
   <p>The "-u" flag generates a "TRUNCATE TABLE" statement to quickly empty a table without dropping and re-creating it.</p>
 
-  <p>"-U" disables the "TRUNCATE TABLE" statement.
+  <p>"-U" disables the "TRUNCATE TABLE" statement.  This is the default.
 
   <p>Indices are automatically created if you specify the columns (or expressions!) you want indexed on the command line. For example, </p>
 
