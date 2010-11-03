@@ -52,14 +52,17 @@ int main(int argc, char **argv)
     uint8_t        terminator;     /* Testing for terminator bytes */
 
     /* Describing the memo file */
+    MEMOHEADER  *memoheader;
     char        *memofilename = NULL;
     int          memofd;
     struct stat  memostat;
     int32_t      memoblocknumber;
+    int          memofileisdbase3 = 0;
 
     void        *memomap = NULL; /* Pointer to the mmap of the memo file */
     char        *memorecord;	 /* Pointer to the current memo block */
     size_t       memoblocksize = 0;  /* The length of each memo block */
+    size_t       memofilesize;
 
     /* Processing and misc */
     char *inputbuffer;
@@ -155,28 +158,29 @@ int main(int argc, char **argv)
     }
     
     if(optexitcode != -1) {
-	printf("Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n", PACKAGE);
-	printf("Convert the named XBase file into PostgreSQL format\n");
-	printf("\n");
-	printf("  -c  issue a 'CREATE TABLE' command to create the table (default)\n");
-	printf("  -C  do not issue a 'CREATE TABLE' command\n");
-	printf("  -d  issue a 'DROP TABLE' command before creating the table (default)\n");
-	printf("  -D  do not issue a 'DROP TABLE' command\n");
-	printf("  -e  use 'IF EXISTS' when dropping tables (PostgreSQL 8.2+) (default)\n");
-	printf("  -E  do not use 'IF EXISTS' when dropping tables (PostgreSQL 8.1 and older)\n");
-	printf("  -h  print this message and exit\n");
-	printf("  -m  the name of the associated memo file (if necessary)\n");
-	printf("  -t  wrap a transaction around the entire series of statements (default)\n");
-	printf("  -T  do not use an enclosing transaction\n");
-	printf("  -u  issue a 'TRUNCATE' command before inserting data\n");
-	printf("  -U  do not issue a 'TRUNCATE' command before inserting data (default)\n");
-	printf("\n");
-	printf("Using '-u' implies '-C -D'. Using '-c' or '-d' implies '-U'.\n");
-	printf("%s is copyright 2009 Daycos.\n", PACKAGE_STRING);
-	printf("License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");
-	printf("This is free software: you are free to change and redistribute it.\n");
-	printf("There is NO WARRANTY, to the extent permitted by law.\n");
-	printf("Report bugs to <%s>\n", PACKAGE_BUGREPORT);
+	printf("Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n"
+	       "Convert the named XBase file into PostgreSQL format\n"
+	       "\n"
+	       "  -c  issue a 'CREATE TABLE' command to create the table (default)\n"
+	       "  -C  do not issue a 'CREATE TABLE' command\n"
+	       "  -d  issue a 'DROP TABLE' command before creating the table (default)\n"
+	       "  -D  do not issue a 'DROP TABLE' command\n"
+	       "  -e  use 'IF EXISTS' when dropping tables (PostgreSQL 8.2+) (default)\n"
+	       "  -E  do not use 'IF EXISTS' when dropping tables (PostgreSQL 8.1 and older)\n"
+	       "  -h  print this message and exit\n"
+	       "  -m  the name of the associated memo file (if necessary)\n"
+	       "  -t  wrap a transaction around the entire series of statements (default)\n"
+	       "  -T  do not use an enclosing transaction\n"
+	       "  -u  issue a 'TRUNCATE' command before inserting data\n"
+	       "  -U  do not issue a 'TRUNCATE' command before inserting data (default)\n"
+	       "\n"
+	       "Using '-u' implies '-C -D'. Using '-c' or '-d' implies '-U'.\n"
+	       "\n"
+	       "%s is copyright 2008-2010 Daycos.\n"
+	       "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"
+	       "This is free software: you are free to change and redistribute it.\n"
+	       "There is NO WARRANTY, to the extent permitted by law.\n"
+	       "Report bugs to <%s>\n", PACKAGE, PACKAGE_STRING, PACKAGE_BUGREPORT);
 	exit(optexitcode);
     }
 
@@ -292,14 +296,43 @@ int main(int argc, char **argv)
 	if (fstat(memofd, &memostat) == -1) {
 	    exitwitherror("Unable to fstat the memofile", 1);
 	}
-	memomap = mmap(NULL, memostat.st_size, PROT_READ, MAP_PRIVATE, memofd, 0);
+	memofilesize = memostat.st_size;
+	memomap = mmap(NULL, memofilesize, PROT_READ, MAP_PRIVATE, memofd, 0);
 	if(memomap == MAP_FAILED) {
 	    exitwitherror("Unable to mmap the memofile", 1);
 	}
-	if(dbfheader.signature == (int8_t) 0x83) {
+	/* Rudimentary error checking. Make sure the "nextblock" field of
+	   the memofile's header isn't negative because that would be
+	   impossible. */
+	memoheader = (MEMOHEADER*) memomap;
+        memofileisdbase3 = dbfheader.signature == (int8_t) 0x83;
+	if(memofileisdbase3) {
+	    memoblocknumber = slittleint32_t(memoheader->nextblock); 
+	} else {
+	    memoblocknumber = sbigint32_t(memoheader->nextblock);
+	}
+	if(memoblocknumber < 0) {
+	    exitwitherror("The next memofile block is negative. The specified "
+			  "memofile probably isn't really a memofile.", 0);
+	}
+	if(memofileisdbase3) {
 	    memoblocksize = 512;
 	} else {
-	    memoblocksize = (size_t) sbigint16_t(((MEMOHEADER*) memomap)->blocksize);
+	    memoblocksize = (size_t) sbigint16_t(memoheader->blocksize);
+	}
+        /* Make sure that the "nextblock" field of the memofile doesn't
+	   extend far past the end of the memofile. If "nextblock" does
+	   point to the end of the memofile, then the memofile may be a few
+	   bytes (less than memoblocksize) smaller than the address of the
+	   next block to be added because they aren't padded. That's OK. But
+	   if the memofile is 2KB in size and the next block would be
+	   somewhere out in the 1GB range, then something's badly
+	   broken. Most likely we're not actually looking at a memofile at
+	   all. */
+	if(memoblocknumber * memoblocksize - memofilesize > memoblocksize) {
+	    exitwitherror("The next memo block would be too far past the end of "
+			  "the memofile. The specified memofile probably isn't "
+			  "really a memofile or is badly damaged.", 0);
 	}
     }
 
@@ -536,7 +569,7 @@ int main(int argc, char **argv)
 		    }
 		    if(memoblocknumber) {
 			memorecord = memomap + memoblocksize * memoblocknumber;
-			if(dbfheader.signature == (int8_t) 0x83) {
+			if(memofileisdbase3) {
 			    t = strchr(memorecord, 0x1A);
 			    safeprintbuf(memorecord, t - memorecord);
 			} else {
