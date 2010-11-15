@@ -322,14 +322,13 @@ int main(int argc, char **argv)
 	}
         /* Make sure that the "nextblock" field of the memofile doesn't
 	   extend far past the end of the memofile. If "nextblock" does
-	   point to the end of the memofile, then the memofile may be a few
-	   bytes (less than memoblocksize) smaller than the address of the
-	   next block to be added because they aren't padded. That's OK. But
-	   if the memofile is 2KB in size and the next block would be
-	   somewhere out in the 1GB range, then something's badly
-	   broken. Most likely we're not actually looking at a memofile at
-	   all. */
-	if(memoblocknumber * memoblocksize - memofilesize > memoblocksize) {
+	   point to the end of the memofile, then the memofile may be
+	   slightly smaller than the address of the next block to be added
+	   because they aren't padded. That's OK. But if the memofile is 2KB
+	   in size and the next block would be somewhere out in the 1GB
+	   range, then something's badly broken. Most likely we're not
+	   actually looking at a memofile at all. */
+	if((memoblocknumber * memoblocksize) > (memofilesize + memoblocksize * 1024)) {
 	    exitwitherror("The next memo block would be too far past the end of "
 			  "the memofile. The specified memofile probably isn't "
 			  "really a memofile or is badly damaged.", 0);
