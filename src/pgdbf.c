@@ -63,6 +63,7 @@ int main(int argc, char **argv)
     char        *memorecord;	 /* Pointer to the current memo block */
     size_t       memoblocksize = 0;  /* The length of each memo block */
     size_t       memofilesize;
+    size_t       memorecordoffset;
 
     /* Processing and misc */
     char *inputbuffer;
@@ -320,19 +321,6 @@ int main(int argc, char **argv)
 	} else {
 	    memoblocksize = (size_t) sbigint16_t(memoheader->blocksize);
 	}
-        /* Make sure that the "nextblock" field of the memofile doesn't
-	   extend far past the end of the memofile. If "nextblock" does
-	   point to the end of the memofile, then the memofile may be
-	   slightly smaller than the address of the next block to be added
-	   because they aren't padded. That's OK. But if the memofile is 2KB
-	   in size and the next block would be somewhere out in the 1GB
-	   range, then something's badly broken. Most likely we're not
-	   actually looking at a memofile at all. */
-	if((memoblocknumber * memoblocksize) > (memofilesize + memoblocksize * 1024)) {
-	    exitwitherror("The next memo block would be too far past the end of "
-			  "the memofile. The specified memofile probably isn't "
-			  "really a memofile or is badly damaged.", 0);
-	}
     }
 
     /* Encapsulate the whole process in a transaction */
@@ -567,7 +555,11 @@ int main(int argc, char **argv)
 			}
 		    }
 		    if(memoblocknumber) {
-			memorecord = memomap + memoblocksize * memoblocknumber;
+			memorecordoffset = memoblocksize * memoblocknumber;
+			if(memorecordoffset >= memofilesize) {
+			    exitwitherror("A memo record past the end of the memofile was requested", 0);
+			}
+			memorecord = memomap + memorecordoffset;
 			if(memofileisdbase3) {
 			    t = strchr(memorecord, 0x1A);
 			    safeprintbuf(memorecord, t - memorecord);
