@@ -38,85 +38,91 @@
 static char staticbuf[STATICBUFFERSIZE + 1];
 
 /* The list of reserved words that can't be used as column names, as per
- * http://www.postgresql.org/docs/8.3/static/sql-keywords-appendix.html .
- * This list includes words longer than XBase's 11-characted column names
- * for completeness. */
+ * http://www.postgresql.org/docs/8.3/static/sql-keywords-appendix.html ,
+ * http://www.postgresql.org/docs/8.4/static/sql-keywords-appendix.html ,
+ * and http://www.postgresql.org/docs/9.0/static/sql-keywords-appendix.html
+ * .  This list includes words longer than XBase's 11-characted column
+ * names for completeness, even if they'll never be matched. */
 static const char *RESERVEDWORDS[] = {
-    "all",
-    "analyse",
-    "analyze",
-    "and",
-    "any",
-    "array",
-    "as",
-    "asc",
-    "asymmetric",
-    "both",
-    "case",
-    "cast",
-    "check",
-    "collate",
-    "column",
-    "constraint",
-    "create",
-    "current_date",
-    "current_role",
-    "current_time",
-    "current_timestamp",
-    "current_user",
-    "default",
-    "deferrable",
-    "desc",
-    "distinct",
-    "do",
-    "else",
-    "end",
-    "except",
-    "false",
-    "for",
-    "foreign",
-    "from",
-    "grant",
-    "group",
-    "having",
-    "in",
-    "initially",
-    "intersect",
-    "into",
-    "leading",
-    "limit",
-    "localtime",
-    "localtimestamp",
-    "new",
-    "not",
-    "null",
-    "off",
-    "offset",
-    "old",
-    "on",
-    "only",
-    "or",
-    "order",
-    "placing",
-    "primary",
-    "references",
-    "returning",
-    "select",
-    "session_user",
-    "some",
-    "symmetric",
-    "table",
-    "then",
-    "to",
-    "trailing",
-    "true",
-    "union",
-    "unique",
-    "user",
-    "using",
-    "when",
-    "where",
-    "with",
+    "all",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "analyse",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "analyze",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "and",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "any",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "array",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "as",                  /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "asc",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "asymmetric",          /* PostgreSQL versions 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "both",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "case",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "cast",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "check",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "collate",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "column",              /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "constraint",          /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "create",              /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "current_catalog",     /* PostgreSQL versions 8.4, 9.0 */
+    "current_date",        /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "current_role",        /* PostgreSQL versions 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "current_time",        /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "current_timestamp",   /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "current_user",        /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "default",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "deferrable",          /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "desc",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "distinct",            /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "do",                  /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "else",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "end",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "except",              /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "false",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "fetch",               /* PostgreSQL versions 8.4, 9.0 */
+    "for",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "foreign",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "from",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "grant",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "group",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "having",              /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "in",                  /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "initially",           /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "intersect",           /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "into",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "leading",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "limit",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "localtime",           /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "localtimestamp",      /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "new",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4 */
+    "not",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "null",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "off",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4 */
+    "offset",              /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "old",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4 */
+    "on",                  /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "only",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "or",                  /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "order",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "placing",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "primary",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "references",          /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "returning",           /* PostgreSQL versions 8.2, 8.3, 8.4, 9.0 */
+    "select",              /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "session_user",        /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "some",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "symmetric",           /* PostgreSQL versions 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "table",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "then",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "to",                  /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "trailing",            /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "true",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "union",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "unique",              /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "user",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "using",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "variadic",            /* PostgreSQL versions 8.4, 9.0 */
+    "when",                /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "where",               /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
+    "window",              /* PostgreSQL versions 8.4, 9.0 */
+    "with",                /* PostgreSQL versions 8.3, 8.4, 9.0 */
     NULL,
 };
 

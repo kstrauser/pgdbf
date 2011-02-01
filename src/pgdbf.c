@@ -336,14 +336,14 @@ int main(int argc, char **argv)
 	if(useifexists) {
 	    printf(" IF EXISTS");
 	}
-	printf(" %s; SET statement_timeout=0;\n", tablename);
+	printf(" \"%s\"; SET statement_timeout=0;\n", tablename);
     }
 
     /* Generate the create table statement, do some sanity testing, and scan
      * for a few additional output parameters.  This is an ugly loop that
      * does lots of stuff, but extracting it into two or more loops with the
      * same structure and the same switch-case block seemed even worse. */
-    if(usecreatetable) printf("CREATE TABLE %s (", tablename);
+    if(usecreatetable) printf("CREATE TABLE \"%s\" (", tablename);
     printed = 0;
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
 	if(fields[fieldnum].type == '0') {
@@ -446,11 +446,11 @@ int main(int argc, char **argv)
 
     /* Truncate the table if requested */
     if(usetruncatetable) {
-	printf("TRUNCATE TABLE %s;\n", tablename);
+	printf("TRUNCATE TABLE \"%s\";\n", tablename);
     }
 
     /* Get PostgreSQL ready to receive lots of input */
-    printf("\\COPY %s FROM STDIN\n", tablename);
+    printf("\\COPY \"%s\" FROM STDIN\n", tablename);
 
     dbfbatchsize = DBFBATCHTARGET / littleint16_t(dbfheader.recordlength);
     if(!dbfbatchsize) {
@@ -640,7 +640,7 @@ int main(int argc, char **argv)
 		}
 	    }
 	}
-	printf(" ON %s(%s);\n", tablename, argv[i]);
+	printf(" ON \"%s\"(%s);\n", tablename, argv[i]);
     }
 
     free(tablename);
