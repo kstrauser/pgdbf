@@ -38,11 +38,10 @@
 static char staticbuf[STATICBUFFERSIZE + 1];
 
 /* The list of reserved words that can't be used as column names, as per
- * http://www.postgresql.org/docs/8.3/static/sql-keywords-appendix.html ,
- * http://www.postgresql.org/docs/8.4/static/sql-keywords-appendix.html ,
- * and http://www.postgresql.org/docs/9.0/static/sql-keywords-appendix.html
- * .  This list includes words longer than XBase's 11-characted column
- * names for completeness, even if they'll never be matched. */
+ * http://www.postgresql.org/docs/x.y/static/sql-keywords-appendix.html ,
+ * for (x.y) in 8.0, 8.1, 8.2, 8.3, 8.4, 9.0. This list includes words
+ * longer than XBase's 11-characted column names for completeness, even if
+ * they'll never be matched. */
 static const char *RESERVEDWORDS[] = {
     "all",                 /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
     "analyse",             /* PostgreSQL versions 8.0, 8.1, 8.2, 8.3, 8.4, 9.0 */
