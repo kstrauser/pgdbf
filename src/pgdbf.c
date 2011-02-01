@@ -362,20 +362,21 @@ int main(int argc, char **argv)
 	    *t++ = tolower(*s++);
 	}
 	*t = '\0';
-	    
-	 /* If the fieldname is a reserved word, rename it to start with */
-	 /* "tablename_" */
-	isreservedname = 0;
-	for(i = 0; RESERVEDWORDS[i]; i++ ) {
-	    if(!strcmp(fieldname, RESERVEDWORDS[i])) {
-		if(usecreatetable) printf("%s_%s ", tablename, fieldname);
-		isreservedname = 1;
-		break;
+
+	if(usecreatetable) {
+	    /* If the fieldname is a reserved word, rename it to start with
+	     * "tablename_" */
+	    isreservedname = 0;
+	    for(i = 0; RESERVEDWORDS[i]; i++ ) {
+		if(!strcmp(fieldname, RESERVEDWORDS[i])) {
+		    printf("%s_%s ", tablename, fieldname);
+		    isreservedname = 1;
+		    break;
+		}
 	    }
+	    if(!isreservedname) printf("%s ", fieldname);
 	}
-	if(!isreservedname) {
-	    if(usecreatetable) printf("%s ", fieldname);
-	}
+
 	switch(fields[fieldnum].type) {
 	case 'B':
 	    /* Precalculate this field's format string so that it doesn't
