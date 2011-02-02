@@ -71,6 +71,7 @@ int main(int argc, char **argv)
     char *bufoffset;
     char *s;
     char *t;
+    char *u;
     int  lastcharwasreplaced = 0;
 
     /* Datetime calculation stuff */
@@ -96,11 +97,13 @@ int main(int argc, char **argv)
     int     usecreatetable = 1;
     int     usedroptable = 1;
     int     useifexists = 1;
+    int     usequotedtablename = 0;
     int     usetransaction = 1;
     int     usetruncatetable = 0;
 
     /* Describing the PostgreSQL table */
     char *tablename;
+    char *baretablename;
     char  fieldname[11];
 
     /* Attempt to parse any command line arguments */
@@ -128,6 +131,12 @@ int main(int argc, char **argv)
 	    break;
 	case 'm':
  	    memofilename = optarg;
+	    break;
+	case 'q':
+	    usequotedtablename = 1;
+	    break;
+	case 'Q':
+	    usequotedtablename = 0;
 	    break;
 	case 't':
 	    usetransaction = 1;
@@ -198,6 +207,15 @@ int main(int argc, char **argv)
     if(tablename == NULL) {
 	exitwitherror("Unable to allocate the tablename buffer", 1);
     }
+    /* The "bare" version of the tablename is the one used by itself in
+     * lines line CREATE TABLE [...], etc. Compare this with tablename which
+     * is used for other things, like creating the names of indexes. Despite
+     * its name, baretablename may be surrounded by quote marks if the "-q"
+     * option for usequotedtablename is given. */
+    baretablename = malloc(strlen(dbffilename) + 1 + usequotedtablename * 2);
+    if(baretablename == NULL) {
+	exitwitherror("Unable to allocate the bare tablename buffer", 1);
+    }
     /* Find the first character after the final slash, or the first
      * character of the filename if no slash is present, and copy from that
      * point to the period in the extension into the tablename string. */
@@ -207,14 +225,21 @@ int main(int argc, char **argv)
 	    break;
 	}
     }
+    /* Create tablename and baretablename at the same time. */
     t = tablename;
+    u = baretablename;
+    if(usequotedtablename) *u++ = '"';
     while(*s) {
 	if(*s == '.') {
 	    break;
 	}
-	*t++ = tolower(*s++);
+	*t = tolower(*s++);
+	*u++ = *t;
+	t++;
     }
+    if(usequotedtablename) *u++ = '"';
     *t = '\0';
+    *u = '\0';
 
     /* Get the DBF header */
     dbffile = fopen(dbffilename, "rb");
@@ -336,14 +361,14 @@ int main(int argc, char **argv)
 	if(useifexists) {
 	    printf(" IF EXISTS");
 	}
-	printf(" \"%s\"; SET statement_timeout=0;\n", tablename);
+	printf(" %s; SET statement_timeout=0;\n", baretablename);
     }
 
     /* Generate the create table statement, do some sanity testing, and scan
      * for a few additional output parameters.  This is an ugly loop that
      * does lots of stuff, but extracting it into two or more loops with the
      * same structure and the same switch-case block seemed even worse. */
-    if(usecreatetable) printf("CREATE TABLE \"%s\" (", tablename);
+    if(usecreatetable) printf("CREATE TABLE %s (", baretablename);
     printed = 0;
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
 	if(fields[fieldnum].type == '0') {
@@ -446,11 +471,11 @@ int main(int argc, char **argv)
 
     /* Truncate the table if requested */
     if(usetruncatetable) {
-	printf("TRUNCATE TABLE \"%s\";\n", tablename);
+	printf("TRUNCATE TABLE %s;\n", baretablename);
     }
 
     /* Get PostgreSQL ready to receive lots of input */
-    printf("\\COPY \"%s\" FROM STDIN\n", tablename);
+    printf("\\COPY %s FROM STDIN\n", baretablename);
 
     dbfbatchsize = DBFBATCHTARGET / littleint16_t(dbfheader.recordlength);
     if(!dbfbatchsize) {
@@ -640,10 +665,11 @@ int main(int argc, char **argv)
 		}
 	    }
 	}
-	printf(" ON \"%s\"(%s);\n", tablename, argv[i]);
+	printf(" ON %s(%s);\n", baretablename, argv[i]);
     }
 
     free(tablename);
+    free(baretablename);
     free(fields);
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
 	if(pgfields[fieldnum].formatstring != NULL) {
