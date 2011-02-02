@@ -107,7 +107,7 @@ int main(int argc, char **argv)
     char  fieldname[11];
 
     /* Attempt to parse any command line arguments */
-    while((opt = getopt(argc, argv, "cCdDeEhm:tTuU")) != -1) {
+    while((opt = getopt(argc, argv, "cCdDeEhm:qQtTuU")) != -1) {
 	switch(opt) {
 	case 'c':
 	    usecreatetable = 1;
