@@ -2,7 +2,7 @@
 # Date created:				23 June 2009
 # Whom:					kirk@daycos.com
 #
-# $FreeBSD: ports/databases/pgdbf/Makefile,v 1.4 2010/11/04 06:10:58 sunpoet Exp $
+# $FreeBSD: ports/databases/pgdbf/Makefile,v 1.5 2010/11/17 02:32:39 sunpoet Exp $
 #
 
 PORTNAME=	pgdbf
