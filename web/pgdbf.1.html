@@ -4,7 +4,7 @@ Content-type: text/html
 <HTML><HEAD><TITLE>Man page of PGDBF</TITLE>
 </HEAD><BODY>
 <H1>PGDBF</H1>
-Section: User Commands  (1)<BR>Updated: November 16 2010<BR><A HREF="#index">Index</A>
+Section: User Commands  (1)<BR>Updated: February 3 2011<BR><A HREF="#index">Index</A>
 <A HREF="/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -17,7 +17,7 @@ pgdbf - convert XBase / FoxPro tables to PostgreSQL
 
 <B>pgdbf</B>
 
-[-cCdDeEhtTuU] [-m memofile] filename [indexcolumn ...]
+[-cCdDeEhqQtTuU] [-m memofile] filename [indexcolumn ...]
 <P>
 <A NAME="lbAD">&nbsp;</A>
 <H2>DESCRIPTION</H2>
@@ -154,6 +154,17 @@ Print a help message, then exit.
 
 <DD>
 The name of the associated memo file (if necessary).
+<DT><B>-q</B>
+
+<DD>
+Enclose the name of the table in quotation marks in statements like &quot;CREATE
+TABLE&quot;, &quot;DROP TABLE&quot;, and so on. This is useful in cases where the table
+name is a PostgreSQL reserved word, and almost certainly harmless in all
+other cases.
+<DT><B>-Q</B>
+
+<DD>
+Do not enclose the name of the table in quotation marks.  Default.
 <DT><B>-t</B>
 
 <DD>
@@ -249,7 +260,7 @@ database for testing.
 <A NAME="lbAJ">&nbsp;</A>
 <H2>AUTHOR</H2>
 
-Kirk Strauser &lt;<A HREF="mailto:kstrauser@users.sourceforge.net">kstrauser@users.sourceforge.net</A>&gt;
+Kirk Strauser &lt;<A HREF="mailto:kirk@strauser.com">kirk@strauser.com</A>&gt;
 <P>
 
 <HR>
@@ -271,6 +282,6 @@ Kirk Strauser &lt;<A HREF="mailto:kstrauser@users.sourceforge.net">kstrauser@use
 This document was created by
 <A HREF="/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 15:24:08 GMT, November 16, 2010
+Time: 15:33:19 GMT, February 03, 2011
 </BODY>
 </HTML>

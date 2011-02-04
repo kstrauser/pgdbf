@@ -1,10 +1,10 @@
-.TH PGDBF 1 "November 16 2010" "Version 0.5.4"
+.TH PGDBF 1 "February 3 2011" "Version 0.5.5"
 .SH NAME
 pgdbf \- convert XBase / FoxPro tables to PostgreSQL
 
 .SH SYNOPSIS
 .B pgdbf
-[\-cCdDeEhtTuU] [-m memofile] filename [indexcolumn ...]
+[\-cCdDeEhqQtTuU] [-m memofile] filename [indexcolumn ...]
 
 .SH DESCRIPTION
 PgDBF is a program for converting XBase databases - particularly FoxPro
@@ -108,6 +108,15 @@ Print a help message, then exit.
 .B -m memofile
 The name of the associated memo file (if necessary).
 .TP
+.B -q
+Enclose the name of the table in quotation marks in statements like "CREATE
+TABLE", "DROP TABLE", and so on. This is useful in cases where the table
+name is a PostgreSQL reserved word, and almost certainly harmless in all
+other cases.
+.TP
+.B -Q
+Do not enclose the name of the table in quotation marks.  Default.
+.TP
 .B -t
 Wrap the entire script in a transaction.  Default.
 .TP
@@ -174,4 +183,4 @@ time), \fIinteger\fP, \fImemo\fP, \fInumeric\fP, \fItimestamp\fP, and
 database for testing.
 
 .SH AUTHOR
-Kirk Strauser <kstrauser@users.sourceforge.net>
+Kirk Strauser <kirk@strauser.com>

@@ -1,5 +1,5 @@
 /* PgDBF - Quickly convert DBF files to PostgreSQL                       */
-/* Copyright (C) 2008-2010  Kirk Strauser <kirk@daycos.com>              */
+/* Copyright (C) 2008-2011  Kirk Strauser <kirk@strauser.com>            */
 /*                                                                       */
 /* This program is free software: you can redistribute it and/or modify  */
 /* it under the terms of the GNU General Public License as published by  */
@@ -179,6 +179,8 @@ int main(int argc, char **argv)
 	       "  -E  do not use 'IF EXISTS' when dropping tables (PostgreSQL 8.1 and older)\n"
 	       "  -h  print this message and exit\n"
 	       "  -m  the name of the associated memo file (if necessary)\n"
+	       "  -q  enclose the table name in quotation marks whenever used in statements\n"
+	       "  -Q  do not enclose the table name in quotation marks (default)\n"
 	       "  -t  wrap a transaction around the entire series of statements (default)\n"
 	       "  -T  do not use an enclosing transaction\n"
 	       "  -u  issue a 'TRUNCATE' command before inserting data\n"
@@ -186,7 +188,7 @@ int main(int argc, char **argv)
 	       "\n"
 	       "Using '-u' implies '-C -D'. Using '-c' or '-d' implies '-U'.\n"
 	       "\n"
-	       "%s is copyright 2008-2010 Daycos.\n"
+	       "%s is copyright 2008-2011 kirk@strauser.com.\n"
 	       "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"
 	       "This is free software: you are free to change and redistribute it.\n"
 	       "There is NO WARRANTY, to the extent permitted by law.\n"
