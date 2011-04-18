@@ -257,6 +257,38 @@ static void safeprintbuf(const char *buf, const size_t inputsize)
 /* Endian-specific code.  Define functions to convert input data to the
  * required form depending on the endianness of the host architecture. */
 
+#define SWAP8BYTES(rightendptr, wrongendcharptr)   \
+    const char *src = wrongendcharptr + 7;         \
+    memcpy((char *) &rightend    , src--, 1);      \
+    memcpy((char *) &rightend + 1, src--, 1);      \
+    memcpy((char *) &rightend + 2, src--, 1);      \
+    memcpy((char *) &rightend + 3, src--, 1);      \
+    memcpy((char *) &rightend + 4, src--, 1);      \
+    memcpy((char *) &rightend + 5, src--, 1);      \
+    memcpy((char *) &rightend + 6, src--, 1);      \
+    memcpy((char *) &rightend + 7, src  , 1);
+
+#define SWAPANDRETURN8BYTES(wrongendcharptr)   \
+    int64_t rightend;                          \
+    SWAP8BYTES(&rightend, wrongendcharptr)     \
+    return rightend;              
+
+#define SWAPANDRETURN4BYTES(wrongendcharptr)   \
+    const char *src = wrongendcharptr + 3;     \
+    int32_t rightend;			       \
+    memcpy((char*) &rightend    , src--, 1);   \
+    memcpy((char*) &rightend + 1, src--, 1);   \
+    memcpy((char*) &rightend + 2, src--, 1);   \
+    memcpy((char*) &rightend + 3, src  , 1);   \
+    return rightend;              
+
+#define SWAPANDRETURN2BYTES(wrongendcharptr)   \
+    const char *src = wrongendcharptr + 1;     \
+    int16_t rightend;			       \
+    memcpy((char*) &rightend    , src--, 1);   \
+    memcpy((char*) &rightend + 1, src  , 1);   \
+    return rightend;              
+
 /* Integer-to-integer */
 
 static int64_t nativeint64_t(const int64_t rightend)
@@ -268,14 +300,7 @@ static int64_t nativeint64_t(const int64_t rightend)
 static int64_t swappedint64_t(const int64_t wrongend)
 {
     /* Change the endianness of a 64-bit integer */
-    return (int64_t) (((wrongend & 0xff00000000000000LL) >> 56) |
-		      ((wrongend & 0x00ff000000000000LL) >> 40) |
-		      ((wrongend & 0x0000ff0000000000LL) >> 24) |
-		      ((wrongend & 0x000000ff00000000LL) >> 8)  |
-		      ((wrongend & 0x00000000ff000000LL) << 8)  |
-		      ((wrongend & 0x0000000000ff0000LL) << 24) |
-		      ((wrongend & 0x000000000000ff00LL) << 40) |
-		      ((wrongend & 0x00000000000000ffLL) << 56));
+    SWAPANDRETURN8BYTES(((char *) &wrongend))
 }
 
 static int32_t nativeint32_t(const int32_t rightend)
@@ -287,10 +312,7 @@ static int32_t nativeint32_t(const int32_t rightend)
 static int32_t swappedint32_t(const int32_t wrongend)
 {
     /* Change the endianness of a 32-bit integer */
-    return (int32_t) (((wrongend & 0xff000000) >> 24) |
-		      ((wrongend & 0x00ff0000) >> 8)  |
-		      ((wrongend & 0x0000ff00) << 8)  |
-		      ((wrongend & 0x000000ff) << 24));
+    SWAPANDRETURN4BYTES(((char*) &wrongend))
 }
 
 static int16_t nativeint16_t(const int16_t rightend)
@@ -302,8 +324,7 @@ static int16_t nativeint16_t(const int16_t rightend)
 static int16_t swappedint16_t(const int16_t wrongend)
 {
     /* Change the endianness of a 16-bit integer */
-    return (int16_t) (((wrongend & 0xff00) >> 8) |
-		      ((wrongend & 0x00ff) << 8));
+    SWAPANDRETURN2BYTES(((char*) &wrongend))
 }
 
 /* String-to-integer */
@@ -319,9 +340,7 @@ static int64_t snativeint64_t(const char *buf)
 static int64_t sswappedint64_t(const char *buf)
 {
     /* The byte-swapped version of snativeint64_t */
-    int64_t output;
-    memcpy(&output, buf, 8);
-    return swappedint64_t(output);
+    SWAPANDRETURN8BYTES(buf)
 }
 
 static int32_t snativeint32_t(const char *buf) 
@@ -335,9 +354,7 @@ static int32_t snativeint32_t(const char *buf)
 static int32_t sswappedint32_t(const char *buf)
 {
     /* The byte-swapped version of snativeint32_t */
-    int32_t output;
-    memcpy(&output, buf, 4);
-    return swappedint32_t(output);
+    SWAPANDRETURN4BYTES(buf)
 }
 
 static int16_t snativeint16_t(const char *buf) 
@@ -351,9 +368,7 @@ static int16_t snativeint16_t(const char *buf)
 static int16_t sswappedint16_t(const char *buf) 
 {
     /* The byte-swapped version of snativeint16_t */
-    int16_t output;
-    memcpy(&output, buf, 2);
-    return swappedint16_t(output);
+    SWAPANDRETURN2BYTES(buf)
 }
 
 #ifdef WORDS_BIGENDIAN
@@ -384,7 +399,7 @@ static double sdouble(const char *buf)
 	double  asdouble;
     } inttodouble;
 
-    inttodouble.asint64 = slittleint64_t(buf);
+    SWAP8BYTES(&inttodouble.asint64, buf)
     return inttodouble.asdouble;
 }
 #else
