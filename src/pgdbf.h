@@ -23,11 +23,11 @@
 /* This should be big enough to hold most of the varchars and memo fields
  * that you'll be processing.  If a given piece of data won't fit in a
  * buffer of this size, then a temporary buffer will be allocated for it. */
-#define STATICBUFFERSIZE 1024 * 1024
+#define STATICBUFFERSIZE 1024 * 1024 * 16
 
 /* Attempt to read approximately this many bytes from the .dbf file at once.
  * The actual number may be adjusted up or down as appropriate. */
-#define DBFBATCHTARGET 128 * 1024
+#define DBFBATCHTARGET 1024 * 1024 * 16
 
 /* Old versions of FoxPro (and probably other programs) store the memo file
  * record number in human-readable ASCII. Newer versions of FoxPro store it
