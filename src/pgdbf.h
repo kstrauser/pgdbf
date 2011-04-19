@@ -23,7 +23,7 @@
 /* This should be big enough to hold most of the varchars and memo fields
  * that you'll be processing.  If a given piece of data won't fit in a
  * buffer of this size, then a temporary buffer will be allocated for it. */
-#define STATICBUFFERSIZE 1024 * 1024 * 16
+#define STATICBUFFERSIZE 1024 * 1024 * 4
 
 /* Attempt to read approximately this many bytes from the .dbf file at once.
  * The actual number may be adjusted up or down as appropriate. */
@@ -252,6 +252,22 @@ static void safeprintbuf(const char *buf, const size_t inputsize)
     if(targetbuf != staticbuf) {
 	free(targetbuf);
     }
+}
+
+int progressdots = 1;
+
+void updateprogressbar(int percent) {
+    int newprogressdots = percent / 2;
+    for(; progressdots <= newprogressdots; progressdots++) {
+	putc('.', stderr);
+	if(progressdots && !(progressdots % 5)){
+	    fprintf(stderr, "%d", progressdots * 2);
+	}
+    }
+    if(percent == 100) {
+	fprintf(stderr, "\n");
+    }
+    fflush(stderr);
 }
 
 /* Endian-specific code.  Define functions to convert input data to the

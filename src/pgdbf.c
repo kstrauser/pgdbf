@@ -94,6 +94,7 @@ int main(int argc, char **argv)
 				 * valid and the program should run.
 				 * Anything else is an exit code and the
 				 * program will stop. */
+    int     showprogress = 0;
     int     usecreatetable = 1;
     int     usedroptable = 1;
     int     useifexists = 1;
@@ -107,7 +108,7 @@ int main(int argc, char **argv)
     char  fieldname[11];
 
     /* Attempt to parse any command line arguments */
-    while((opt = getopt(argc, argv, "cCdDeEhm:qQtTuU")) != -1) {
+    while((opt = getopt(argc, argv, "cCdDeEhm:pPqQtTuU")) != -1) {
 	switch(opt) {
 	case 'c':
 	    usecreatetable = 1;
@@ -131,6 +132,12 @@ int main(int argc, char **argv)
 	    break;
 	case 'm':
  	    memofilename = optarg;
+	    break;
+	case 'p':
+	    showprogress = 1;
+	    break;
+	case 'P':
+	    showprogress = 0;
 	    break;
 	case 'q':
 	    usequotedtablename = 1;
@@ -179,6 +186,8 @@ int main(int argc, char **argv)
 	       "  -E  do not use 'IF EXISTS' when dropping tables (PostgreSQL 8.1 and older)\n"
 	       "  -h  print this message and exit\n"
 	       "  -m  the name of the associated memo file (if necessary)\n"
+	       "  -p  show a progress bar during processing\n"
+	       "  -P  do not show a progress bar\n"
 	       "  -q  enclose the table name in quotation marks whenever used in statements\n"
 	       "  -Q  do not enclose the table name in quotation marks (default)\n"
 	       "  -t  wrap a transaction around the entire series of statements (default)\n"
@@ -494,6 +503,10 @@ int main(int argc, char **argv)
 
     /* Loop across records in the file, taking 'dbfbatchsize' at a time, and
      * output them in PostgreSQL-compatible format */
+    if(showprogress) {
+	fprintf(stderr, "Progress: 0");
+	fflush(stderr);
+    }
     for(recordbase = 0; recordbase < littleint32_t(dbfheader.recordcount); recordbase += dbfbatchsize) {
 	blocksread = fread(inputbuffer, littleint16_t(dbfheader.recordlength), dbfbatchsize, dbffile);
 	if(blocksread != dbfbatchsize &&
@@ -642,7 +655,11 @@ int main(int argc, char **argv)
 	    }
 	    printf("\n");
 	}
+	if(showprogress) {
+	    updateprogressbar(100 * (recordbase + blocksread) / littleint32_t(dbfheader.recordcount));
+	}
     }
+    if(showprogress) { updateprogressbar(100); }
     free(inputbuffer);
     free(outputbuffer);
     printf("\\.\n");
