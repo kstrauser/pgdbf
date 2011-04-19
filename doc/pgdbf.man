@@ -114,6 +114,12 @@ TABLE", "DROP TABLE", and so on. This is useful in cases where the table
 name is a PostgreSQL reserved word, and almost certainly harmless in all
 other cases.
 .TP
+.B -p
+Show a progress bar during the conversion process.
+.TP
+.B -P
+Do not show a progress bar.  Default.
+.TP
 .B -Q
 Do not enclose the name of the table in quotation marks.  Default.
 .TP
