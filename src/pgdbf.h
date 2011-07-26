@@ -14,6 +14,11 @@
 /* You should have received a copy of the GNU General Public License     */
 /* along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
+/* This sets glibc (and possibly Solaris's libc?) to replace fopen, fstat,
+ * etc. with their 64-bit equivalents so that they can open files larger
+ * than 2GB. FreeBSD and OS X handle large files by default. */
+#define _FILE_OFFSET_BITS 64
+
 #include <config.h>
 #include <stdint.h>
 #include <stdio.h>
