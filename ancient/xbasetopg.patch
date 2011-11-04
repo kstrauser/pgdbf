@@ -1,0 +1,718 @@
+diff -urN xbase64-3.1.2-old/bin/dumprecspg.cpp xbase64-3.1.2/bin/dumprecspg.cpp
+--- xbase64-3.1.2-old/bin/dumprecspg.cpp	1969-12-31 18:00:00.000000000 -0600
++++ xbase64-3.1.2/bin/dumprecspg.cpp	2008-01-11 13:17:01.000000000 -0600
+@@ -0,0 +1,125 @@
++/*  dumprecs.cpp
++
++    This program dumps a dbf file contents 
++
++    Xbase64 project source code
++
++    This sample program dumps Xbase records
++
++    Copyright (C) 2006,2007,2008  Kirk Strauser <kirk@strauser.com>
++
++    This program is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with this program; if not, write to the Free Software
++    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++    Contact:
++    
++     Email:
++    
++      xbase64-devel@lists.sourceforge.net
++      xbase64-users@lists.sourceforge.net
++      
++      
++     Regular Mail:
++     
++       XBase Support
++       149C South Main St
++       Keller Texas, 76248     
++       USA
++
++*/
++#include <xbase64/xbase64.h>
++
++// next lines are helpful for debugging purposes
++#include <xbase64/xbdbf.cpp>
++#include <xbase64/xbexp.cpp>
++#include <xbase64/xbexpprc.cpp>
++#include <xbase64/xbexpfnc.cpp>
++#include <xbase64/xbfields.cpp>
++#include <xbase64/xbindex.cpp>
++#include <xbase64/xbmemo.cpp>
++#include <xbase64/xbndx.cpp>
++#include <xbase64/xbntx.cpp>
++#include <xbase64/xbase64.cpp>
++#include <xbase64/xbdate.cpp>
++#include <xbase64/xbfilter.cpp>
++#include <xbase64/xblock.cpp>
++#include <xbase64/xbstring.cpp>
++#include <xbase64/xbfile.cpp>
++#include <xbase64/xbcdx.cpp>
++
++
++
++int main(int ac,char** av)
++{
++  xbXBase x;
++  xbShort rc;  
++ 
++  if (ac <= 1) {
++    std::cout << "Usage: dumprecs filename [indexcolumn ...]" << std::endl;
++    return 1;
++  }
++
++  char* filename = av[1];
++
++  xbDbf MyFile( &x );
++
++  MyFile.SetVersion( 4 );
++  rc = MyFile.OpenDatabase(filename);
++  if( rc != XB_NO_ERROR) {
++    std::cout << "Could not open file " << filename << std::endl;
++    x.DisplayError( rc );
++    return 1;
++  }
++
++  char tablename[4096];
++  MyFile.GetTableName( tablename );
++
++  // Start a transaction, then drop the table and recreate it
++  std::cout << "begin;" << std::endl;
++  std::cout << "drop table " << tablename << ";" << std::endl;
++  MyFile.PgDumpHeader();
++
++  // Dump the database contents
++  std::cout << "\\copy " << tablename << " from stdin" << std::endl;
++
++  int row = 0;
++  while(row<MyFile.NoOfRecords()){
++    rc = MyFile.PgDumpRecord(++row);
++    if( rc != XB_NO_ERROR )
++      x.DisplayError( rc );
++  }
++  std::cout << "\\." << std::endl;
++
++  // Create requested indices
++  for( int i = 2; i < ac; i++ ){
++    std::cout << "create index " << tablename << "_";
++    for( int j = 0; av[i][j]; j++){
++      if( isalnum(av[i][j]) ){
++	std::cout << av[i][j];
++      }
++      else{
++	std::cout << "_";
++      }
++    }
++    std::cout << " on " << tablename << "(" << av[i] << ");\n";
++  }
++
++  // Commit the transaction and clean up
++  std::cout << "commit;" << std::endl;
++//   std::cout << "analyze " << tablename << ";" << std::endl;
++  MyFile.CloseDatabase();	/* close database */
++
++  return 0;
++}     
++
+diff -urN xbase64-3.1.2-old/bin/Makefile.in xbase64-3.1.2/bin/Makefile.in
+--- xbase64-3.1.2-old/bin/Makefile.in	2004-06-01 15:46:50.000000000 -0500
++++ xbase64-3.1.2/bin/Makefile.in	2008-01-11 13:17:01.000000000 -0600
+@@ -95,8 +95,8 @@
+ INCLUDES = -I$(topdir)
+ LDADD = -L$(topdir)/xbase64 -lxbase64
+ 
+-bin_PROGRAMS = checkndx copydbf dbfxtrct deletall dumphdr dumprecs packdbf   \
+-               reindex undelall zap dbfutil1
++bin_PROGRAMS = checkndx copydbf dbfxtrct deletall dumphdr dumprecs dumprecspg   \
++               packdbf reindex undelall zap dbfutil1
+ 
+ 
+ noinst_PROGRAMS = dumpdbt
+@@ -109,6 +109,7 @@
+ dumpdbt_SOURCES = dumpdbt.cpp 
+ dumphdr_SOURCES = dumphdr.cpp 
+ dumprecs_SOURCES = dumprecs.cpp 
++dumprecspg_SOURCES = dumprecspg.cpp 
+ packdbf_SOURCES = packdbf.cpp 
+ reindex_SOURCES = reindex.cpp 
+ undelall_SOURCES = undelall.cpp
+@@ -127,8 +128,8 @@
+ CONFIG_CLEAN_FILES =
+ bin_PROGRAMS = checkndx$(EXEEXT) copydbf$(EXEEXT) dbfxtrct$(EXEEXT) \
+ 	deletall$(EXEEXT) dumphdr$(EXEEXT) dumprecs$(EXEEXT) \
+-	packdbf$(EXEEXT) reindex$(EXEEXT) undelall$(EXEEXT) \
+-	zap$(EXEEXT) dbfutil1$(EXEEXT)
++	dumprecspg$(EXEEXT) packdbf$(EXEEXT) reindex$(EXEEXT) \
++	undelall$(EXEEXT) zap$(EXEEXT) dbfutil1$(EXEEXT)
+ noinst_PROGRAMS = dumpdbt$(EXEEXT)
+ PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
+ 
+@@ -172,6 +173,11 @@
+ dumprecs_LDADD = $(LDADD)
+ dumprecs_DEPENDENCIES =
+ dumprecs_LDFLAGS =
++am_dumprecspg_OBJECTS = dumprecspg.$(OBJEXT)
++dumprecspg_OBJECTS = $(am_dumprecspg_OBJECTS)
++dumprecspg_LDADD = $(LDADD)
++dumprecspg_DEPENDENCIES =
++dumprecspg_LDFLAGS =
+ am_packdbf_OBJECTS = packdbf.$(OBJEXT)
+ packdbf_OBJECTS = $(am_packdbf_OBJECTS)
+ packdbf_LDADD = $(LDADD)
+@@ -204,8 +210,9 @@
+ @AMDEP_TRUE@	./$(DEPDIR)/dbfutil1.Po ./$(DEPDIR)/dbfxtrct.Po \
+ @AMDEP_TRUE@	./$(DEPDIR)/deletall.Po ./$(DEPDIR)/dumpdbt.Po \
+ @AMDEP_TRUE@	./$(DEPDIR)/dumphdr.Po ./$(DEPDIR)/dumprecs.Po \
+-@AMDEP_TRUE@	./$(DEPDIR)/packdbf.Po ./$(DEPDIR)/reindex.Po \
+-@AMDEP_TRUE@	./$(DEPDIR)/undelall.Po ./$(DEPDIR)/zap.Po
++@AMDEP_TRUE@	./$(DEPDIR)/dumprecspg.Po ./$(DEPDIR)/packdbf.Po \
++@AMDEP_TRUE@	./$(DEPDIR)/reindex.Po ./$(DEPDIR)/undelall.Po \
++@AMDEP_TRUE@	./$(DEPDIR)/zap.Po
+ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+ 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+ LTCXXCOMPILE = $(LIBTOOL) --mode=compile $(CXX) $(DEFS) \
+@@ -218,12 +225,12 @@
+ DIST_SOURCES = $(checkndx_SOURCES) $(copydbf_SOURCES) \
+ 	$(dbfutil1_SOURCES) $(dbfxtrct_SOURCES) $(deletall_SOURCES) \
+ 	$(dumpdbt_SOURCES) $(dumphdr_SOURCES) $(dumprecs_SOURCES) \
+-	$(packdbf_SOURCES) $(reindex_SOURCES) $(undelall_SOURCES) \
+-	$(zap_SOURCES)
++	$(dumprecspg_SOURCES) $(packdbf_SOURCES) $(reindex_SOURCES) \
++	$(undelall_SOURCES) $(zap_SOURCES)
+ HEADERS = $(noinst_HEADERS)
+ 
+ DIST_COMMON = $(noinst_HEADERS) Makefile.am Makefile.in
+-SOURCES = $(checkndx_SOURCES) $(copydbf_SOURCES) $(dbfutil1_SOURCES) $(dbfxtrct_SOURCES) $(deletall_SOURCES) $(dumpdbt_SOURCES) $(dumphdr_SOURCES) $(dumprecs_SOURCES) $(packdbf_SOURCES) $(reindex_SOURCES) $(undelall_SOURCES) $(zap_SOURCES)
++SOURCES = $(checkndx_SOURCES) $(copydbf_SOURCES) $(dbfutil1_SOURCES) $(dbfxtrct_SOURCES) $(deletall_SOURCES) $(dumpdbt_SOURCES) $(dumphdr_SOURCES) $(dumprecs_SOURCES) $(dumprecspg_SOURCES) $(packdbf_SOURCES) $(reindex_SOURCES) $(undelall_SOURCES) $(zap_SOURCES)
+ 
+ all: all-am
+ 
+@@ -294,6 +301,9 @@
+ dumprecs$(EXEEXT): $(dumprecs_OBJECTS) $(dumprecs_DEPENDENCIES) 
+ 	@rm -f dumprecs$(EXEEXT)
+ 	$(CXXLINK) $(dumprecs_LDFLAGS) $(dumprecs_OBJECTS) $(dumprecs_LDADD) $(LIBS)
++dumprecspg$(EXEEXT): $(dumprecspg_OBJECTS) $(dumprecspg_DEPENDENCIES) 
++	@rm -f dumprecspg$(EXEEXT)
++	$(CXXLINK) $(dumprecspg_LDFLAGS) $(dumprecspg_OBJECTS) $(dumprecspg_LDADD) $(LIBS)
+ packdbf$(EXEEXT): $(packdbf_OBJECTS) $(packdbf_DEPENDENCIES) 
+ 	@rm -f packdbf$(EXEEXT)
+ 	$(CXXLINK) $(packdbf_LDFLAGS) $(packdbf_OBJECTS) $(packdbf_LDADD) $(LIBS)
+@@ -321,6 +331,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dumpdbt.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dumphdr.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dumprecs.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dumprecspg.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/packdbf.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reindex.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/undelall.Po@am__quote@
+diff -urN xbase64-3.1.2-old/xbase64/xbdbf.cpp xbase64-3.1.2/xbase64/xbdbf.cpp
+--- xbase64-3.1.2-old/xbase64/xbdbf.cpp	2006-07-17 11:54:42.000000000 -0500
++++ xbase64-3.1.2/xbase64/xbdbf.cpp	2008-01-11 13:17:01.000000000 -0600
+@@ -56,6 +56,16 @@
+ #endif
+ #include <errno.h>
+ 
++char *reservedwords[] = {
++  "desc",
++  "from",
++  "group",
++  "to",
++  "user",
++  NULL,
++};
++
++
+ /*! \file xbdbf.cpp
+ */
+ 
+@@ -739,8 +749,115 @@
+   std::cout << std::endl;
+   return XB_NO_ERROR;
+ }
++/************************************************************************/
++//! Print header information in the format of a PostgreSQL "create table" command
++/*!
++*/
++xbShort xbDbf::PgDumpHeader()
++{
++  char fieldname[4096];
++  char filename[4096];
++ 
++  GetTableName( filename );
++  std::cout << "create table " << filename << " (";
++
++  int printed = 0;
++  for( int i = 0; i <NoOfFields; i++ ){
++    if( SchemaPtr[i].Type != '0' ){
++      if( printed ){
++	std::cout << ", ";
++      }
++      else{
++	printed = 1;
++      }
++      strncpy( fieldname, SchemaPtr[i].FieldName, 4096 );
++      LowerCase( fieldname );
++
++      // If the fieldname is a reserved word, rename it to start with
++      // "filename_".
++      int reservedfieldname = 0;
++      for( int j = 0; reservedwords[j]; j++ ){
++	if( !strcmp( fieldname, reservedwords[j] ) ){
++ 	  std::cout << filename << "_" << fieldname << " ";
++ 	  reservedfieldname = 1;
++ 	  break;
++	}
++      }
++      if( !reservedfieldname ){
++	std::cout << fieldname << " ";
++      }
++      switch( SchemaPtr[i].Type ){
++      case 'C':
++	std::cout << "varchar(" << (int)SchemaPtr[i].FieldLen << ")";
++	break;
++      case 'D':
++	std::cout << "date";
++	break;
++      case 'I':
++	std::cout << "integer";
++	break;
++      case 'L':
++	std::cout << "boolean";
++// 	std::cout << "smallint";
++	break;
++      case 'M':
++	std::cout << "text";
++	break;
++      case 'N':
++	std::cout << "text";
++	// std::cout << "numeric(" << (int)SchemaPtr[i].FieldLen << ", " <<
++	//   (int)SchemaPtr[i].NoOfDecs << ")";
++	break;
++      case 'T':
++	std::cout << "timestamp";
++	break;
++      }
++    }
++  }
++  std::cout << ");" << std::endl;
++  return XB_NO_ERROR;
++}
+ #endif
+ /************************************************************************/
++//! Lowercase a string.  We don't do this often, so there's no point importing
++/*!
++  We don't do this very often, so it's probably not worth importing another
++  external library just for the sake of this one function.
++*/
++xbShort xbDbf::LowerCase( char * Buf )
++{
++  size_t length = strlen( Buf );
++  for( int j = 0; j < length; j++ ){
++    Buf[j] = towlower( Buf[j] );
++  }
++  return 0;
++}
++/************************************************************************/
++//! Return the name of this table, minus leading paths and trailing extensions
++/*!
++*/
++xbShort xbDbf::GetTableName( char * Buf )
++{
++  char filename[4096];
++
++  strncpy( filename, GetFileName(), 4096 );
++  LowerCase( filename );
++  size_t length = strlen( filename );
++  int lastslash = -1;
++  for( int i = length - 1; i >= 0; i-- ){
++    if( filename[i] == '.' ){
++      filename[i] = '\0';
++    }
++  }
++  for( int i = 0; i < length; i++ ){
++    if( filename[i] == '/' ){
++      lastslash = i;
++    }
++  }
++  strcpy( Buf, filename + lastslash + 1 );
++  return 0;
++}
++/************************************************************************/
+ //! Open the DBF file.
+ /*!
+   This method attempts to open the DBF file with the specified
+@@ -1471,6 +1588,107 @@
+   return XB_NO_ERROR;
+ }
+ /************************************************************************/
++//! PostgreSQL dump record
++/*!
++  Dump the contents of the specified record to stdout in a format compatible
++  with PostgreSQL's "copy from" command.
++
++  \param RecNo Record number of record to be dumped.
++  \returns An error code (same as GetRecord()).
++*/
++xbShort xbDbf::PgDumpRecord( xbULong RecNo )
++{
++  int  i, j, printed, rc;
++  char buf[4096];
++  char riskybuf[4096];
++
++  if( RecNo == 0 || RecNo > NoOfRecs )
++    return XB_INVALID_RECORD;
++
++  rc = GetRecord( RecNo );
++  if( rc != XB_NO_ERROR )
++    return rc;
++
++  if( RecordDeleted() )
++    return 0;
++
++  printed = 0;
++  for( i = 0; i < NoOfFields; i++ ){
++#ifdef XB_MEMO_FIELDS
++    switch( SchemaPtr[i].Type ){
++    case 'D':
++      // Handle datestamps
++      GetField( i, buf );
++      if( !strcmp( buf, "        " ) ){
++	buf[0] = '\\';
++	buf[1] = 'N';
++	buf[2] = 0x00;
++      }
++      break;
++    case 'I':
++      // Handle packed integers
++      snprintf( buf, 4096, "%d", GetLongPackedField( i ) );
++      break;
++    case 'L':
++      // Boolean values
++      GetField( i, buf );
++      switch( buf[0] ){
++      case 'T':
++	buf[0] = '1';
++	break;
++      default:
++	buf[0] = '0';
++      }
++      break;
++    case 'M':
++      // Handle memo fields
++      if( MemoFieldExists( i )){
++        // memset( riskybuf, 0x00, 4095 );
++        rc = GetMemoField(i, 4095, riskybuf, 0);
++        if(rc != XB_NO_ERROR)
++          return rc;
++      } else {
++	riskybuf[0] = 0x00;
++      }
++      PgEscapeField( riskybuf, buf, 4096 );
++      break;
++    case 'T':
++      // Handle datetime values
++      GetDatetimeField( i, buf );
++      if( !strcmp( buf, "11/25/1956 00:00:00" ) ){
++	buf[0] = '\\';
++	buf[1] = 'N';
++	buf[2] = 0x00;
++      }
++      break;
++    case '0':
++      continue;
++    default:
++      // Escape the values in string fields
++      char riskybuf[4096];
++      GetField( i, riskybuf );
++      PgEscapeField( riskybuf, buf, 4096 );
++      break;
++    }
++
++    // Print a tab separator before every field after the first
++    if( printed ){
++      std::cout << "\t";
++    }
++    else{
++      printed = 1;
++    }
++
++    std::cout << buf;
++#else
++    GetField( i, buf );
++    std::cout << buf;
++#endif
++  }
++  std::cout << std::endl;
++  return XB_NO_ERROR;
++}
++/************************************************************************/
+ //! Write the current record buffer to the current record in the data file.
+ /*!
+   Attempts to write the contents of the record buffer to the current
+diff -urN xbase64-3.1.2-old/xbase64/xbdbf.h xbase64-3.1.2/xbase64/xbdbf.h
+--- xbase64-3.1.2-old/xbase64/xbdbf.h	2006-07-17 11:54:50.000000000 -0500
++++ xbase64-3.1.2/xbase64/xbdbf.h	2008-01-11 13:17:01.000000000 -0600
+@@ -213,7 +213,11 @@
+ #ifdef XBASE_DEBUG
+   xbShort   DumpHeader( xbShort );
+ #endif
++  xbShort   PgDumpHeader();
++  xbShort   LowerCase( char * Buf );
++  xbShort   GetTableName( char * Buf );
+   xbShort   DumpRecord( xbULong );
++  xbShort   PgDumpRecord( xbULong );
+   //! Return number of fields
+   /*!
+   */
+@@ -294,6 +298,17 @@
+   xbShort   ValidLogicalData( const char * );
+   xbShort   ValidNumericData( const char * );
+ 
++  xbShort   GetDatetimeField( const char *FieldName, char *Buf) const;
++  xbShort   GetDatetimeField( xbShort FieldNo, char *Buf) const;
++
++  xbLong    UnpackLong( const char *PackedValue ) const;
++  xbShort   MakeDate( const xbLong DateValue, char *Buf ) const;
++  xbShort   MakeTime( const xbLong TimeValue, char *Buf ) const;
++  xbShort   EscapeCharacter( const char Src, char *Dest ) const;
++  xbShort   PgEscapeField( const char *Src, char *Dest, const int maxsize ) const;
++  xbLong    GetLongPackedField( const char *FieldName ) const;
++  xbLong    GetLongPackedField( const xbShort FieldNo ) const;
++
+   xbLong    GetLongField( const char *FieldName) const;
+   xbLong    GetLongField( const xbShort FieldNo) const;
+   xbShort   PutLongField( const xbShort, const xbLong );
+diff -urN xbase64-3.1.2-old/xbase64/xbfields.cpp xbase64-3.1.2/xbase64/xbfields.cpp
+--- xbase64-3.1.2-old/xbase64/xbfields.cpp	2006-07-17 11:54:42.000000000 -0500
++++ xbase64-3.1.2/xbase64/xbfields.cpp	2008-01-11 13:17:01.000000000 -0600
+@@ -480,6 +480,166 @@
+   return GetField(FieldNo, buf, 0);
+ }
+ /************************************************************************/
++//! Get the value of the specified field, where the value
++//! in the field is a datetime string.
++/*!
++*/
++xbShort xbDbf::GetDatetimeField( xbShort FieldNo, char *Buf) const
++{
++  char localbuf[12];
++  xbLong unpacked;
++  memset( localbuf, 0x00, 12 );
++  GetField( FieldNo, localbuf );
++  unpacked = UnpackLong( localbuf );
++  MakeDate( unpacked, Buf );
++  Buf[10] = ' ';
++  unpacked = UnpackLong( localbuf + 4 );
++  MakeTime( unpacked, Buf + 11 );
++  return 0;
++}
++/************************************************************************/
++//! Get the value of the specified field, where the value
++//! in the field is a datetime string.
++/*!
++*/
++xbShort xbDbf::GetDatetimeField( const char *FieldName, char *Buf) const
++{
++  return( GetDatetimeField( GetFieldNo( FieldName ), Buf ));
++}
++/************************************************************************/
++//! Convert a 4-byte packed little-endian value into a long.
++/*!
++*/
++xbLong xbDbf::UnpackLong( const char *PackedValue ) const
++{
++  xbLong a = (PackedValue[3] & 255) << 24 |
++             (PackedValue[2] & 255) << 16 |
++             (PackedValue[1] & 255) << 8  |
++             (PackedValue[0] & 255);
++  return a;
++}
++/************************************************************************/
++//! Convert a long number of days since Jan. 1, 4713BC (?!?!?) to YYYY/MM/DD.
++/*!
++*/
++xbShort xbDbf::MakeDate( const xbLong DateValue, char *Buf ) const
++{
++  // XBase has the screwiest time base I've ever seen.  So, subtract the
++  // number of days from XBase epoch to the Unix epoch and use POSIX
++  // time functions to calculate dates.
++  time_t SecondsSinceEpoch;
++  SecondsSinceEpoch = (DateValue - 2440588) * 86400;
++  strftime( Buf, 11, "%m/%d/%Y", gmtime( &SecondsSinceEpoch ) );
++  return 0;
++}
++/************************************************************************/
++//! Convert a long number of milliseconds since midnight to HH:MM:SS.
++/*!
++*/
++xbShort xbDbf::MakeTime( const xbLong TimeValue, char *Buf ) const
++{
++  // FoxPro rounds down one millisecond, so account for that.
++  xbLong msec = TimeValue + 1;
++  xbShort hours = msec / 3600000;
++  msec = msec - hours * 3600000;
++  xbShort minutes = msec / 60000;
++  xbShort seconds = (msec - minutes * 60000) / 1000;
++  sprintf( Buf, "%02d:%02d:%02d", hours, minutes, seconds);
++  return 0;
++}
++/************************************************************************/
++//! Escape an entire string of untrusted data by removing characters
++//! that might interfere with PostgreSQL's COPY FROM.
++/*!
++*/
++xbShort xbDbf::PgEscapeField( const char *Src, char *Dest, const int maxcopy ) const
++{
++  // An escaped character and its length
++  char       escaped;
++  xbShort    esclength = 0;
++  // Length of the new target string
++  xbShort    destlength = 0;
++  // Convert a length to an index (length - 1) and leave room for the
++  // terminating zero.
++  xbShort    highestindex = maxcopy - 2;
++  // Pointers to the source and target strings
++  const char *sp = Src;
++  char       *tp = Dest;
++
++  while( *sp != 0x00 ){
++    switch( *sp ){
++    case '\\':
++      escaped = '\\';
++      esclength = 1;
++      break;
++    case '\n':
++      escaped = 'n';
++      esclength = 1;
++      break;
++    case '\r':
++      escaped = 'r';
++      esclength = 1;
++      break;
++    case '\t':
++      escaped = 't';
++      esclength = 1;
++      break;
++    }
++
++    // If the resulting string would be too long, exit
++    if( destlength + esclength > highestindex ){
++      break;
++    }
++
++    // If the character was not escaped, write it verbatim
++    if( !esclength ){
++      *tp++ = *sp;
++      destlength += 1;
++    } else {
++      // Otherwise, write the escaped version
++      *tp++ = '\\';
++      *tp++ = escaped;
++      destlength += 2;
++      // Reset esclength for the remaining iterations
++      esclength = 0;
++    }
++    sp++;
++  }
++
++  // Terminate the string
++  *tp = 0x00;
++
++  // Strip off trailing spaces by replacing them with end-of-string
++  // until we reach a non-space or the beginning of the string
++  while( tp != Dest && *--tp == ' ' ){
++    *tp = 0x00;
++    destlength--;
++  }
++
++  return destlength;  
++}
++/************************************************************************/
++//! Get the long value of the specified field, where the value
++//! in the field is a packed integer.
++/*!
++*/
++xbLong xbDbf::GetLongPackedField( xbShort FieldNo ) const
++{
++  char buf[18];
++  memset( buf, 0x00, 18 );
++  GetField( FieldNo, buf );
++  return UnpackLong ( buf );
++}
++/************************************************************************/
++//! Get the long value of the specified field, where the value
++//! in the field is a packed integer.
++/*!
++*/
++xbLong xbDbf::GetLongPackedField( const char * FieldName ) const
++{
++  return( GetLongPackedField( GetFieldNo( FieldName )));
++}
++/************************************************************************/
+ //! Get the long value of the specified field.
+ /*!
+ */
+diff -urN xbase64-3.1.2-old/xbase64/xbmemo.cpp xbase64-3.1.2/xbase64/xbmemo.cpp
+--- xbase64-3.1.2-old/xbase64/xbmemo.cpp	2006-07-17 11:54:42.000000000 -0500
++++ xbase64-3.1.2/xbase64/xbmemo.cpp	2008-01-11 13:17:01.000000000 -0600
+@@ -1096,10 +1096,23 @@
+ */
+ xbShort xbDbf::MemoFieldExists( xbShort FieldNo ) const
+ {
+-  if( GetLongField( FieldNo ) == 0L )
+-     return 0;
+-  else
+-     return 1;
++  xbLong BlockNo;
++  char buf[18];
++
++  if( Version == (char)0x30 ) {
++    memset( buf, 0x00, 18 ) ;
++    GetField( FieldNo, buf );
++    BlockNo = xbase->GetLong((char*) buf);
++  } else {
++    BlockNo = GetLongField(FieldNo);
++  }  
++
++  if( BlockNo == 0L ){
++    return 0;
++  }
++  else{
++    return 1;
++  }
+ }
+ /***********************************************************************/
+ //! Short description
+diff -urN xbase64-3.1.2-old/xbase64/xbnode.cpp xbase64-3.1.2/xbase64/xbnode.cpp
+--- xbase64-3.1.2-old/xbase64/xbnode.cpp	2006-07-17 11:54:42.000000000 -0500
++++ xbase64-3.1.2/xbase64/xbnode.cpp	2008-01-11 13:17:01.000000000 -0600
+@@ -1,4 +1,4 @@
+-#include "xbNode.h"
++#include "xbnode.h"
+ 
+ void xbNodeLink::AddNode(xbNodeLink* node)
+ {
+diff -urN xbase64-3.1.2-old/xbase64/xbtypes.h xbase64-3.1.2/xbase64/xbtypes.h
+--- xbase64-3.1.2-old/xbase64/xbtypes.h	2006-07-17 11:54:50.000000000 -0500
++++ xbase64-3.1.2/xbase64/xbtypes.h	2008-01-11 13:17:01.000000000 -0600
+@@ -40,6 +40,7 @@
+ #define __XB_XTYPES_H__
+ 
+ #include <stdio.h>
++#include <sys/types.h>
+ 
+ /*! \file xbtypes.h
+ */

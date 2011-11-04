@@ -1,0 +1,9 @@
+This is the origin of PgDBF. Xbase (or xbase64 or XDB, depending where you
+look) is a package for manipulating DBF files. I based my first conversion
+project on it and published it as a set of patches to apply against the Xbase
+source. This worked pretty well for a while, but the Xbase project's goals
+were different from mine and I eventually decided to start over from scratch.
+
+This is the patch file I published in 2008. I'm providing it for historical
+purposes or in the unlikely chance that someone really, really needs it for
+some reason.
