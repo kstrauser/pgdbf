@@ -8,7 +8,7 @@ import sys
 import urllib2
 
 KEYWORDURLBASE = 'http://www.postgresql.org/docs/%s/static/sql-keywords-appendix.html'
-PGVERSIONS = ('8.0', '8.1', '8.2', '8.3', '8.4', '9.0')
+PGVERSIONS = ('8.0', '8.1', '8.2', '8.3', '8.4', '9.0', '9.1')
 
 def getreservedwords(url):
     """Given the URL of a PostgreSQL webpage listing reserved
