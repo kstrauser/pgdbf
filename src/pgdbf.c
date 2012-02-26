@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -641,7 +642,7 @@ int main(int argc, char **argv)
 		    break;
 		case 'Y':
 		    /* Currency */
-		    t = outputbuffer + sprintf(outputbuffer, "%05jd", slittleint64_t(bufoffset));
+		    t = outputbuffer + sprintf(outputbuffer, "%05"PRId64, slittleint64_t(bufoffset));
 		    *(t + 1) = '\0';
 		    *(t) = *(t - 1);
 		    *(t - 1) = *(t - 2);
