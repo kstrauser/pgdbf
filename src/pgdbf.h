@@ -141,44 +141,40 @@ typedef struct {
     int8_t   reserved1[2];
     int8_t   incomplete;
     int8_t   encrypted;
-    int8_t   reserved2[4];	/* Free record thread */
-    int8_t   reserved3[8];	/* Reserved for multi-user dBASE */
+    int8_t   reserved2[4];      /* Free record thread */
+    int8_t   reserved3[8];      /* Reserved for multi-user dBASE */
     int8_t   mdx;
     int8_t   language;
     int8_t   reserved4[2];
 } DBFHEADER;
 
-typedef struct 
-{
+typedef struct {
     char    name[11];
     char    type;
     int32_t memaddress;
     uint8_t length;
     uint8_t decimals;
-    int16_t flags;		/* Reserved for multi-user dBase */
+    int16_t flags;              /* Reserved for multi-user dBase */
     char    workareaid;
-    char    reserved1[2];	/* Reserved for multi-user dBase */
+    char    reserved1[2];       /* Reserved for multi-user dBase */
     char    setfields;
     char    reserved2[7];
     char    indexfield;
 } DBFFIELD;
 
-typedef struct 
-{
+typedef struct {
     char nextblock[4];
     char reserved1[2];
     char blocksize[2];
     char reserved2[504];
 } MEMOHEADER;
 
-typedef struct
-{
+typedef struct {
     char *formatstring;
     int   memonumbering;
 } PGFIELD;
 
-static void exitwitherror(const char *message, const int systemerror)
-{
+static void exitwitherror(const char *message, const int systemerror) {
     /* Print the given error message to stderr, then exit.  If systemerror
      * is true, then use perror to explain the value in errno. */
     if(systemerror) {
@@ -189,8 +185,7 @@ static void exitwitherror(const char *message, const int systemerror)
     exit(EXIT_FAILURE);
 }
 
-static void safeprintbuf(const char *buf, const size_t inputsize)
-{
+static void safeprintbuf(const char *buf, const size_t inputsize) {
     /* Print a string, insuring that it's fit for use in a tab-delimited
      * text file */
     char       *targetbuf;
@@ -201,61 +196,61 @@ static void safeprintbuf(const char *buf, const size_t inputsize)
 
     /* Shortcut for empty strings */
     if(*buf == '\0') {
-	return;
+        return;
     }
 
     /* Find the rightmost non-space, non-null character */
     for(s = buf + inputsize - 1; s >= buf; s--) {
-	if(*s != ' ' && *s != '\0') {
-	    break;
-	}
+        if(*s != ' ' && *s != '\0') {
+            break;
+        }
     }
 
     /* If there aren't any non-space characters, skip the output part */
     if(s < buf) {
-	return;
+        return;
     }
 
     lastchar = s;
     realsize = s - buf + 1;
     if(realsize * 2 < STATICBUFFERSIZE) {
-	targetbuf = staticbuf;
+        targetbuf = staticbuf;
     } else {
-	targetbuf = malloc(realsize * 2 + 1);
-	if(targetbuf == NULL) {
-	    exitwitherror("Unable to malloc the escape output buffer", 1);
-	}
+        targetbuf = malloc(realsize * 2 + 1);
+        if(targetbuf == NULL) {
+            exitwitherror("Unable to malloc the escape output buffer", 1);
+        }
     }
 
     /* Re-write invalid characters to their SQL-safe alternatives */
     t = targetbuf;
     for(s = buf; s <= lastchar; s++) {
-	switch(*s) {
-	case '\\':
-	    *t++ = '\\';
-	    *t++ = '\\';
-	    break;
-	case '\n':
-	    *t++ = '\\';
-	    *t++ = 'n';
-	    break;
-	case '\r':
-	    *t++ = '\\';
-	    *t++ = 'r';
-	    break;
-	case '\t':
-	    *t++ = '\\';
-	    *t++ = 't';
-	    break;
-	default:
-	    *t++ = *s;
-	}
+        switch(*s) {
+        case '\\':
+            *t++ = '\\';
+            *t++ = '\\';
+            break;
+        case '\n':
+            *t++ = '\\';
+            *t++ = 'n';
+            break;
+        case '\r':
+            *t++ = '\\';
+            *t++ = 'r';
+            break;
+        case '\t':
+            *t++ = '\\';
+            *t++ = 't';
+            break;
+        default:
+            *t++ = *s;
+        }
     }
     *t = '\0';
     printf("%s", targetbuf);
 
     if(targetbuf != staticbuf) {
-	free(targetbuf);
+        free(targetbuf);
     }
 }
 
@@ -264,13 +259,13 @@ int progressdots = 1;
 void updateprogressbar(int percent) {
     int newprogressdots = percent / 2;
     for(; progressdots <= newprogressdots; progressdots++) {
-	putc('.', stderr);
-	if(progressdots && !(progressdots % 5)){
-	    fprintf(stderr, "%d", progressdots * 2);
-	}
+        putc('.', stderr);
+        if(progressdots && !(progressdots % 5)){
+            fprintf(stderr, "%d", progressdots * 2);
+        }
     }
     if(percent == 100) {
-	fprintf(stderr, "\n");
+        fprintf(stderr, "\n");
     }
     fflush(stderr);
 }
@@ -296,7 +291,7 @@ void updateprogressbar(int percent) {
 
 #define SWAPANDRETURN4BYTES(wrongendcharptr)   \
     const char *src = wrongendcharptr + 3;     \
-    int32_t rightend;			       \
+    int32_t rightend;                          \
     memcpy((char*) &rightend    , src--, 1);   \
     memcpy((char*) &rightend + 1, src--, 1);   \
     memcpy((char*) &rightend + 2, src--, 1);   \
@@ -305,89 +300,77 @@ void updateprogressbar(int percent) {
 
 #define SWAPANDRETURN2BYTES(wrongendcharptr)   \
     const char *src = wrongendcharptr + 1;     \
-    int16_t rightend;			       \
+    int16_t rightend;                          \
     memcpy((char*) &rightend    , src--, 1);   \
     memcpy((char*) &rightend + 1, src  , 1);   \
     return rightend;              
 
 /* Integer-to-integer */
 
-static int64_t nativeint64_t(const int64_t rightend)
-{
+static int64_t nativeint64_t(const int64_t rightend) {
     /* Leave a 64-bit integer alone */
     return rightend;
 }
 
-static int64_t swappedint64_t(const int64_t wrongend)
-{
+static int64_t swappedint64_t(const int64_t wrongend) {
     /* Change the endianness of a 64-bit integer */
     SWAPANDRETURN8BYTES(((char *) &wrongend))
 }
 
-static int32_t nativeint32_t(const int32_t rightend)
-{
+static int32_t nativeint32_t(const int32_t rightend) {
     /* Leave a 32-bit integer alone */
     return rightend;
 }
 
-static int32_t swappedint32_t(const int32_t wrongend)
-{
+static int32_t swappedint32_t(const int32_t wrongend) {
     /* Change the endianness of a 32-bit integer */
     SWAPANDRETURN4BYTES(((char*) &wrongend))
 }
 
-static int16_t nativeint16_t(const int16_t rightend)
-{
+static int16_t nativeint16_t(const int16_t rightend) {
     /* Leave a 16-bit integer alone */
     return rightend;
 }
 
-static int16_t swappedint16_t(const int16_t wrongend)
-{
+static int16_t swappedint16_t(const int16_t wrongend) {
     /* Change the endianness of a 16-bit integer */
     SWAPANDRETURN2BYTES(((char*) &wrongend))
 }
 
 /* String-to-integer */
 
-static int64_t snativeint64_t(const char *buf) 
-{
+static int64_t snativeint64_t(const char *buf) {
     /* Interpret the first 8 bytes of buf as a 64-bit int */
     int64_t output;
     memcpy(&output, buf, 8);
     return output;
 }
 
-static int64_t sswappedint64_t(const char *buf)
-{
+static int64_t sswappedint64_t(const char *buf) {
     /* The byte-swapped version of snativeint64_t */
     SWAPANDRETURN8BYTES(buf)
 }
 
-static int32_t snativeint32_t(const char *buf) 
-{
+static int32_t snativeint32_t(const char *buf) {
     /* Interpret the first 4 bytes of buf as a 32-bit int */
     int32_t output;
     memcpy(&output, buf, 4);
     return output;
 }
 
-static int32_t sswappedint32_t(const char *buf)
-{
+static int32_t sswappedint32_t(const char *buf) {
     /* The byte-swapped version of snativeint32_t */
     SWAPANDRETURN4BYTES(buf)
 }
 
-static int16_t snativeint16_t(const char *buf) 
-{
+static int16_t snativeint16_t(const char *buf) {
     /* Interpret the first 2 bytes of buf as a 16-bit int */
     int16_t output;
     memcpy(&output, buf, 2);
     return output;
 }
 
-static int16_t sswappedint16_t(const char *buf) 
-{
+static int16_t sswappedint16_t(const char *buf) {
     /* The byte-swapped version of snativeint16_t */
     SWAPANDRETURN2BYTES(buf)
 }
@@ -411,13 +394,11 @@ static int16_t sswappedint16_t(const char *buf)
 #define sbigint16_t    snativeint16_t
 #define slittleint16_t sswappedint16_t
 
-static double sdouble(const char *buf)
-{
+static double sdouble(const char *buf) {
     /* Doubles are stored as 64-bit little-endian, so swap ends */
-    union 
-    {
-	int64_t asint64;
-	double  asdouble;
+    union {
+        int64_t asint64;
+        double  asdouble;
     } inttodouble;
 
     SWAP8BYTES(&inttodouble.asint64, buf)
@@ -442,8 +423,7 @@ static double sdouble(const char *buf)
 #define sbigint16_t    sswappedint16_t
 #define slittleint16_t snativeint16_t
 
-static double sdouble(const char *buf)
-{
+static double sdouble(const char *buf) {
     /* Interpret the first 8 bytes of buf as a double */
     double output;
     memcpy(&output, buf, 8);
