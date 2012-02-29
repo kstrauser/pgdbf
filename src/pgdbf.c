@@ -94,13 +94,16 @@ int main(int argc, char **argv) {
                                  * valid and the program should run.
                                  * Anything else is an exit code and the
                                  * program will stop. */
-    int     showprogress = 0;
-    int     usecreatetable = 1;
-    int     usedroptable = 1;
-    int     useifexists = 1;
-    int     usequotedtablename = 0;
-    int     usetransaction = 1;
-    int     usetruncatetable = 0;
+
+    /* Default values for command line options */
+    int     optnumericasnumeric = 1;
+    int     optshowprogress = 0;
+    int     optusecreatetable = 1;
+    int     optusedroptable = 1;
+    int     optuseifexists = 1;
+    int     optusequotedtablename = 0;
+    int     optusetransaction = 1;
+    int     optusetruncatetable = 0;
 
     /* Describing the PostgreSQL table */
     char *tablename;
@@ -108,56 +111,62 @@ int main(int argc, char **argv) {
     char  fieldname[11];
 
     /* Attempt to parse any command line arguments */
-    while((opt = getopt(argc, argv, "cCdDeEhm:pPqQtTuU")) != -1) {
+    while((opt = getopt(argc, argv, "cCdDeEhm:nNpPqQtTuU")) != -1) {
         switch(opt) {
         case 'c':
-            usecreatetable = 1;
-            usetruncatetable = 0;
+            optusecreatetable = 1;
+            optusetruncatetable = 0;
             break;
         case 'C':
-            usecreatetable = 0;
+            optusecreatetable = 0;
             break;
         case 'd':
-            usedroptable = 1;
-            usetruncatetable = 0;
+            optusedroptable = 1;
+            optusetruncatetable = 0;
             break;
         case 'D':
-            usedroptable = 0;
+            optusedroptable = 0;
             break;
         case 'e':
-            useifexists = 1;
+            optuseifexists = 1;
             break;
         case 'E':
-            useifexists = 0;
+            optuseifexists = 0;
             break;
         case 'm':
             memofilename = optarg;
             break;
+        case 'n':
+            optnumericasnumeric = 1;
+            break;
+        case 'N':
+            optnumericasnumeric = 0;
+            break;
         case 'p':
-            showprogress = 1;
+            optshowprogress = 1;
             break;
         case 'P':
-            showprogress = 0;
+            optshowprogress = 0;
             break;
         case 'q':
-            usequotedtablename = 1;
+            optusequotedtablename = 1;
             break;
         case 'Q':
-            usequotedtablename = 0;
+            optusequotedtablename = 0;
             break;
         case 't':
-            usetransaction = 1;
+            optusetransaction = 1;
             break;
         case 'T':
-            usetransaction = 0;
+            optusetransaction = 0;
             break;
         case 'u':
-            usetruncatetable = 1;
-            usecreatetable = 0;
-            usedroptable = 0;
+            optusetruncatetable = 1;
+            optusecreatetable = 0;
+            optusedroptable = 0;
             break;
         case 'U':
-            usetruncatetable = 0;
+            optusetruncatetable = 0;
             break;
         case 'h':
         default:
@@ -186,6 +195,8 @@ int main(int argc, char **argv) {
                "  -E  do not use 'IF EXISTS' when dropping tables (PostgreSQL 8.1 and older)\n"
                "  -h  print this message and exit\n"
                "  -m  the name of the associated memo file (if necessary)\n"
+               "  -n  use type 'NUMERIC' for NUMERIC fields\n"
+               "  -N  use type 'TEXT' for NUMERIC fields\n"
                "  -p  show a progress bar during processing\n"
                "  -P  do not show a progress bar\n"
                "  -q  enclose the table name in quotation marks whenever used in statements\n"
@@ -206,10 +217,10 @@ int main(int argc, char **argv) {
     }
 
     /* Sanity check the arguments */
-    if(!usecreatetable) {
+    if(!optusecreatetable) {
         /* It makes no sense to drop the table without creating it
          * afterward */
-        usedroptable = 0;
+        optusedroptable = 0;
     }
 
     /* Calculate the table's name based on the DBF filename */
@@ -222,8 +233,8 @@ int main(int argc, char **argv) {
      * lines line CREATE TABLE [...], etc. Compare this with tablename which
      * is used for other things, like creating the names of indexes. Despite
      * its name, baretablename may be surrounded by quote marks if the "-q"
-     * option for usequotedtablename is given. */
-    baretablename = malloc(strlen(dbffilename) + 1 + usequotedtablename * 2);
+     * option for optusequotedtablename is given. */
+    baretablename = malloc(strlen(dbffilename) + 1 + optusequotedtablename * 2);
     if(baretablename == NULL) {
         exitwitherror("Unable to allocate the bare tablename buffer", 1);
     }
@@ -239,7 +250,7 @@ int main(int argc, char **argv) {
     /* Create tablename and baretablename at the same time. */
     t = tablename;
     u = baretablename;
-    if(usequotedtablename) *u++ = '"';
+    if(optusequotedtablename) *u++ = '"';
     while(*s) {
         if(*s == '.') {
             break;
@@ -248,7 +259,7 @@ int main(int argc, char **argv) {
         *u++ = *t;
         t++;
     }
-    if(usequotedtablename) *u++ = '"';
+    if(optusequotedtablename) *u++ = '"';
     *t = '\0';
     *u = '\0';
 
@@ -360,16 +371,16 @@ int main(int argc, char **argv) {
     }
 
     /* Encapsulate the whole process in a transaction */
-    if(usetransaction) {
+    if(optusetransaction) {
         printf("BEGIN;\n");
     }
 
     /* Drop the table if requested */
-    if(usedroptable) {
+    if(optusedroptable) {
         printf("SET statement_timeout=60000; DROP TABLE");
         /* Newer versions of PostgreSQL (8.2+) support "if exists" when
          * dropping tables. */
-        if(useifexists) {
+        if(optuseifexists) {
             printf(" IF EXISTS");
         }
         printf(" %s; SET statement_timeout=0;\n", baretablename);
@@ -379,14 +390,14 @@ int main(int argc, char **argv) {
      * for a few additional output parameters.  This is an ugly loop that
      * does lots of stuff, but extracting it into two or more loops with the
      * same structure and the same switch-case block seemed even worse. */
-    if(usecreatetable) printf("CREATE TABLE %s (", baretablename);
+    if(optusecreatetable) printf("CREATE TABLE %s (", baretablename);
     printed = 0;
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
         if(fields[fieldnum].type == '0') {
             continue;
         }
-        if(printed && usecreatetable) {
-            if(usecreatetable) printf(", ");
+        if(printed && optusecreatetable) {
+            if(optusecreatetable) printf(", ");
         }
         else {
             printed = 1;
@@ -399,7 +410,7 @@ int main(int argc, char **argv) {
         }
         *t = '\0';
 
-        if(usecreatetable) {
+        if(optusecreatetable) {
             /* If the fieldname is a reserved word, rename it to start with
              * "tablename_" */
             isreservedname = 0;
@@ -420,33 +431,33 @@ int main(int argc, char **argv) {
             if(asprintf(&pgfields[fieldnum].formatstring, "%%.%dlf", fields[fieldnum].decimals) < 0) {
                 exitwitherror("Unable to allocate a format string", 1);
             }
-            if(usecreatetable) printf("DOUBLE PRECISION");
+            if(optusecreatetable) printf("DOUBLE PRECISION");
             break;
         case 'C':
-            if(usecreatetable) printf("VARCHAR(%d)", fields[fieldnum].length);
+            if(optusecreatetable) printf("VARCHAR(%d)", fields[fieldnum].length);
             break;
         case 'D':
-            if(usecreatetable) printf("DATE");
+            if(optusecreatetable) printf("DATE");
             break;
         case 'F':
-            if(usecreatetable) printf("NUMERIC(%d)", fields[fieldnum].decimals);
+            if(optusecreatetable) printf("NUMERIC(%d)", fields[fieldnum].decimals);
             break;
         case 'G':
-            if(usecreatetable) printf("BYTEA");
+            if(optusecreatetable) printf("BYTEA");
             break;
         case 'I':
-            if(usecreatetable) printf("INTEGER");
+            if(optusecreatetable) printf("INTEGER");
             break;
         case 'L':
             /* This was a smallint at some point in the past */
-            if(usecreatetable) printf("BOOLEAN");           break;
+            if(optusecreatetable) printf("BOOLEAN");           break;
         case 'M':
             if(memofilename == NULL) {
                 printf("\n");
                 fprintf(stderr, "Table %s has memo fields, but couldn't open the related memo file\n", tablename);
                 exit(EXIT_FAILURE);
             }
-            if(usecreatetable) printf("TEXT");
+            if(optusecreatetable) printf("TEXT");
             /* Decide whether to use numeric or packed int memo block
              * number */
             if(fields[fieldnum].length == 4) {
@@ -458,19 +469,26 @@ int main(int argc, char **argv) {
             }
             break;
         case 'N':
-            /* Was a numeric at one point, but for our purposes a text field
-             * is better because there isn't a perfect overlap between
-             * FoxPro and PostgreSQL numeric types */
-            if(usecreatetable) printf("TEXT");
+            if(optusecreatetable) {
+                if(optnumericasnumeric) {
+                    if(fields[fieldnum].decimals > 0) {
+                        printf("NUMERIC(%d, %d)", fields[fieldnum].length, fields[fieldnum].decimals);
+                    } else {
+                        printf("NUMERIC(%d)", fields[fieldnum].length);
+                    }
+                } else {
+                    printf("TEXT");
+                }
+            }
             break;
         case 'T':
-            if(usecreatetable) printf("TIMESTAMP");
+            if(optusecreatetable) printf("TIMESTAMP");
             break;
         case 'Y':
-            if(usecreatetable) printf("DECIMAL(4)");
+            if(optusecreatetable) printf("DECIMAL(4)");
             break;
         default:
-            if(usecreatetable) printf("\n");
+            if(optusecreatetable) printf("\n");
             fprintf(stderr, "Unhandled field type: %c\n", fields[fieldnum].type);
             exit(EXIT_FAILURE);
         }
@@ -478,10 +496,10 @@ int main(int argc, char **argv) {
             longestfield = fields[fieldnum].length;
         }
     }
-    if(usecreatetable) printf(");\n");
+    if(optusecreatetable) printf(");\n");
 
     /* Truncate the table if requested */
-    if(usetruncatetable) {
+    if(optusetruncatetable) {
         printf("TRUNCATE TABLE %s;\n", baretablename);
     }
 
@@ -503,7 +521,7 @@ int main(int argc, char **argv) {
 
     /* Loop across records in the file, taking 'dbfbatchsize' at a time, and
      * output them in PostgreSQL-compatible format */
-    if(showprogress) {
+    if(optshowprogress) {
         fprintf(stderr, "Progress: 0");
         fflush(stderr);
     }
@@ -655,17 +673,17 @@ int main(int argc, char **argv) {
             }
             printf("\n");
         }
-        if(showprogress) {
+        if(optshowprogress) {
             updateprogressbar(100 * (recordbase + blocksread) / littleint32_t(dbfheader.recordcount));
         }
     }
-    if(showprogress) { updateprogressbar(100); }
+    if(optshowprogress) { updateprogressbar(100); }
     free(inputbuffer);
     free(outputbuffer);
     printf("\\.\n");
 
     /* Until this point, no changes have been flushed to the database */
-    if(usetransaction) {
+    if(optusetransaction) {
         printf("COMMIT;\n");
     }
 
