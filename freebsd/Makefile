@@ -15,6 +15,8 @@ COMMENT=	Convert XBase / FoxPro tables to PostgreSQL
 
 LICENSE=	GPLv3
 
+USE_XZ=		yes
+
 USE_GMAKE=	yes
 GNU_CONFIGURE=	yes
 
