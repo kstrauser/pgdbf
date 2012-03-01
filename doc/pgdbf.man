@@ -1,4 +1,4 @@
-.TH PGDBF 1 "February 3 2011" "Version 0.5.5"
+.TH PGDBF 1 "March 1 2012" "Version 0.6.1"
 .SH NAME
 pgdbf \- convert XBase / FoxPro tables to PostgreSQL
 

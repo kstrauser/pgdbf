@@ -44,6 +44,8 @@
 
   <h2>Release Notes</h2>
 
+  <p>Version 0.6.1 (March 1, 2012) is exactly identical in operation to 0.6.0, but I'm an awful release engineer and always forget to update the version number in the man page, etc. This bumps the revision to indicate that files have changed.</p>
+
   <p>Version 0.6.0 (February 29, 2012) breaks compatibility with older versions by creating NUMERIC fields as type NUMERIC instead of TEXT by default. Use the "-N" flag to get the old behavior. Use the new(ish) PRId64 definition from inttypes.h to print 64-bit CURRENCY fields. Adds an optional progress bar. Adds 64-bit file offset support for Linux (and possibly Solaris, although it's not tested). Increased the default buffer and batch sizes from 1MB and 128KB to 4MB and 16MB respectively. Cleaned up lots of endian-handling code.</p>
 
   <p>Version 0.5.5 (February 3, 2011) adds the "-q" option to place quotation marks around the name of the table when using it in statements like "CREATE TABLE", "DROP TABLE", etc.</p>
