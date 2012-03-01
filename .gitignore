@@ -17,3 +17,5 @@ src/pgdbf.o
 stamp-h1
 test/
 *.o
+.DS_Store
+*.tar.xz
