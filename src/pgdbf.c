@@ -73,20 +73,20 @@ int main(int argc, char **argv) {
     char *t;
     char *u;
     int  lastcharwasreplaced = 0;
-
-    /* Datetime calculation stuff */
-    int32_t juliandays;
-    int32_t seconds;
-    int     hours;
-    int     minutes;
-
     int     i;
+    int     j;
     int     isreservedname;
     int     printed;
     size_t  blocksread;
     size_t  longestfield = 32;  /* Make sure we leave at least enough room
                                  * to print out long formatted numbers, like
                                  * currencies. */
+
+    /* Datetime calculation stuff */
+    int32_t juliandays;
+    int32_t seconds;
+    int     hours;
+    int     minutes;
 
     /* Command line option parsing */
     int     opt;
@@ -108,7 +108,10 @@ int main(int argc, char **argv) {
     /* Describing the PostgreSQL table */
     char *tablename;
     char *baretablename;
-    char  fieldname[11];
+    char (*fieldnames)[MAXCOLUMNNAMESIZE];
+    int isuniquename;
+    char basename[MAXCOLUMNNAMESIZE];
+    int serial;
 
     /* Attempt to parse any command line arguments */
     while((opt = getopt(argc, argv, "cCdDeEhm:nNpPqQtTuU")) != -1) {
@@ -386,6 +389,61 @@ int main(int argc, char **argv) {
         printf(" %s; SET statement_timeout=0;\n", baretablename);
     }
 
+    /* Uniqify the XBase field names. It's possible to have multiple fields
+     * with the same name, but PostgreSQL correctly considers that an error
+     * condition. */
+    if(optusecreatetable) {
+        fieldnames = calloc(fieldcount, MAXCOLUMNNAMESIZE);
+        if(fieldnames == NULL) {
+            exitwitherror("Unable to allocate the columnname uniqification buffer", 1);
+        }
+        for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
+            /* Lowercase the field names to make PostgreSQL column names */
+            s = fields[fieldnum].name;
+            t = fieldnames[fieldnum];
+            while(*s) {
+                *t++ = tolower(*s++);
+            }
+            *t = '\0';
+        }
+        for(i = 1; i < fieldcount; i++) {
+            /* Search for duplicates in all the previously processed field names */
+            isuniquename = 1;
+            for(j = 0; j < i; j++) {
+                if(i != j && !strcmp(fieldnames[i], fieldnames[j])) {
+                    isuniquename = 0;
+                    break;
+                }
+            }
+            /* No duplicates? Move on to the next. */
+            if(isuniquename) {
+                continue;
+            }
+
+            /* Create a unique name by appending "_" plus an ever-increasing
+             * serial number to the end of the field name until it doesn't match
+             * any other field name. */
+            strcpy(basename, fieldnames[i]);
+            serial = 2;
+            while(!isuniquename) {
+                /* sprintf() is safe because it's impossible for the longest XBase
+                 * field name plus an underscore plus a serial number (which can't
+                 * be greater than 4 digits long because of XBase field count
+                 * limits) plus the trailing \0 to be longer than
+                 * MAXCOLUMNNAMESIZE. */
+                sprintf(fieldnames[i], "%s_%d", basename, serial);
+                isuniquename = 1;
+                for(j = 0; j < fieldcount; j++) {
+                    if(j != i && !strcmp(fieldnames[i], fieldnames[j])) {
+                        isuniquename = 0;
+                        break;
+                    }
+                }
+                serial++;
+            }
+        }
+    }
+
     /* Generate the create table statement, do some sanity testing, and scan
      * for a few additional output parameters.  This is an ugly loop that
      * does lots of stuff, but extracting it into two or more loops with the
@@ -403,25 +461,18 @@ int main(int argc, char **argv) {
             printed = 1;
         }
 
-        s = fields[fieldnum].name;
-        t = fieldname;
-        while(*s) {
-            *t++ = tolower(*s++);
-        }
-        *t = '\0';
-
         if(optusecreatetable) {
             /* If the fieldname is a reserved word, rename it to start with
              * "tablename_" */
             isreservedname = 0;
             for(i = 0; RESERVEDWORDS[i]; i++ ) {
-                if(!strcmp(fieldname, RESERVEDWORDS[i])) {
-                    printf("%s_%s ", tablename, fieldname);
+                if(!strcmp(fieldnames[fieldnum], RESERVEDWORDS[i])) {
+                    printf("%s_%s ", tablename, fieldnames[fieldnum]);
                     isreservedname = 1;
                     break;
                 }
             }
-            if(!isreservedname) printf("%s ", fieldname);
+            if(!isreservedname) printf("%s ", fieldnames[fieldnum]);
         }
 
         switch(fields[fieldnum].type) {

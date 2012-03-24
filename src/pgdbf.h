@@ -40,6 +40,19 @@
 #define NUMERICMEMOSTYLE 0
 #define PACKEDMEMOSTYLE 1
 
+/* Don't edit this! It's defined in the XBase specification. */
+#define XBASEFIELDNAMESIZE 11
+
+/* This is the maximum size a generated PostgreSQL column size can possibly
+ * be. It's used when making unique versions of duplicated field names.
+ *
+ *    11 bytes for the maximum XBase field name length
+ *    1 byte for a "_" separator
+ *    5 bytes for the numeric "serial number" portion
+ *    1 byte for the trailing \0
+ */
+#define MAXCOLUMNNAMESIZE (XBASEFIELDNAMESIZE + 7)
+
 static char staticbuf[STATICBUFFERSIZE + 1];
 
 /* The list of reserved words that can't be used as column names, as per
@@ -149,7 +162,7 @@ typedef struct {
 } DBFHEADER;
 
 typedef struct {
-    char    name[11];
+    char    name[XBASEFIELDNAMESIZE];
     char    type;
     int32_t memaddress;
     uint8_t length;
