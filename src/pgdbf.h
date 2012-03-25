@@ -194,12 +194,15 @@ typedef struct {
 #if defined(HAVE_ICONV)
 static iconv_t conv_desc = NULL;
 
-static char* convertcharset(const char* sjis, size_t* inputsize)
+static char* convertcharset(const char* inputstring, size_t* inputsize)
 {
-    char *inbuf, *outbuf;
-    size_t inbytesleft, outbyteslen, outbytesleft;
+    char   *inbuf;
+    char   *outbuf;
+    size_t  inbytesleft;
+    size_t  outbyteslen;
+    size_t  outbytesleft;
 
-    inbuf = (char *)sjis;
+    inbuf = (char *)inputstring;
     inbytesleft = *inputsize;
     outbyteslen = inbytesleft * 4 + 1;
     outbytesleft = outbyteslen;

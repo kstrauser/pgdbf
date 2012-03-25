@@ -552,7 +552,8 @@ int main(int argc, char **argv) {
             break;
         case 'L':
             /* This was a smallint at some point in the past */
-            if(optusecreatetable) printf("BOOLEAN");           break;
+            if(optusecreatetable) printf("BOOLEAN");
+            break;
         case 'M':
             if(memofilename == NULL) {
                 printf("\n");
