@@ -209,7 +209,12 @@ int main(int argc, char **argv) {
     }
 
     if(optexitcode != -1) {
-        printf("Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n"
+        printf(
+#if defined(HAVE_ICONV_H)
+               "Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n"
+#else
+               "Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n"
+#endif
                "Convert the named XBase file into PostgreSQL format\n"
                "\n"
                "  -c  issue a 'CREATE TABLE' command to create the table (default)\n"
