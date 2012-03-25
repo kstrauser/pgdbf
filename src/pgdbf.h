@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
 #include <iconv.h>
 #endif
 
@@ -191,7 +191,7 @@ typedef struct {
     int   memonumbering;
 } PGFIELD;
 
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
 static iconv_t conv_desc = NULL;
 
 static char* convertcharset(const char* sjis, size_t* inputsize)
@@ -276,7 +276,7 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
     realsize = s - buf + 1;
     convbuf = (char *)buf;
 
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
     if(conv_desc != NULL) {
         convbuf = convertcharset(buf, &realsize);
         lastchar = convbuf + realsize - 1;
@@ -320,7 +320,7 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
 
     printf("%s", targetbuf);
 
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
     if(conv_desc != NULL) {
         free(convbuf);
     }

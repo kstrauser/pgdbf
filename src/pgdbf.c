@@ -116,13 +116,13 @@ int main(int argc, char **argv) {
     char basename[MAXCOLUMNNAMESIZE];
     int serial;
 
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
     /* Character encoding stuff */
     char *optinputcharset = NULL;
 #endif
 
     strcpy(optvalidargs, STANDARDOPTS);
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
     /* Note that the declaration for optvalidargs currently reserves exactly
      * three chars for this value (two for the string, one for the trailing
      * \0). If you change this value, be sure to alter the optvalidargs
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
         case 'Q':
             optusequotedtablename = 0;
             break;
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
         case 's':
             optinputcharset = optarg;
             break;
@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
 
     if(optexitcode != -1) {
         printf(
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
                "Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n"
 #else
                "Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n"
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
                "  -P  do not show a progress bar\n"
                "  -q  enclose the table name in quotation marks whenever used in statements\n"
                "  -Q  do not enclose the table name in quotation marks (default)\n"
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
                "  -s  the encoding used in the file, to be converted to UTF-8\n"
 #endif
                "  -t  wrap a transaction around the entire series of statements (default)\n"
@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
                "  -u  issue a 'TRUNCATE' command before inserting data\n"
                "  -U  do not issue a 'TRUNCATE' command before inserting data (default)\n"
                "\n"
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
                "If you don't specify an encoding via '-s', the data will be printed as is.\n"
 #endif
                "Using '-u' implies '-C -D'. Using '-c' or '-d' implies '-U'.\n"
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
         optusedroptable = 0;
     }
 
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
     /* Initialize iconv */
     if(optinputcharset != NULL) {
         const char *outputcharset = "UTF-8";
@@ -824,7 +824,7 @@ int main(int argc, char **argv) {
         close(memofd);
     }
 
-#if defined(HAVE_ICONV_H)
+#if defined(HAVE_ICONV)
     if(conv_desc != NULL) {
         if(iconv_close(conv_desc) != 0) {
             fprintf(stderr, "iconv_close failed: %s\n", strerror(errno));
