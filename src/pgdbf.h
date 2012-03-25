@@ -194,7 +194,7 @@ typedef struct {
 #if defined(HAVE_ICONV_H)
 static iconv_t conv_desc = NULL;
 
-static char* sjis2utf8(const char* sjis, size_t* inputsize)
+static char* convertcharset(const char* sjis, size_t* inputsize)
 {
     char *inbuf, *outbuf;
     size_t inbytesleft, outbyteslen, outbytesleft;
@@ -225,7 +225,6 @@ static char* sjis2utf8(const char* sjis, size_t* inputsize)
             default:
                 fprintf(stderr, "Error: %s.\n", strerror(errno));
         }
-
         exit(1);
     }
 
@@ -279,7 +278,7 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
 
 #if defined(HAVE_ICONV_H)
     if(conv_desc != NULL) {
-        convbuf = sjis2utf8(buf, &realsize);
+        convbuf = convertcharset(buf, &realsize);
         lastchar = convbuf + realsize - 1;
     }
 #endif
