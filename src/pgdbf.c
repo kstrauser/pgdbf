@@ -209,8 +209,14 @@ int main(int argc, char **argv) {
     }
 
     if(optexitcode != -1) {
-        printf("Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n"
-               "Convert the named XBase file into PostgreSQL format\n"
+#if defined(HAVE_ICONV_H)
+        printf("Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n",
+               PACKAGE);
+#else
+        printf("Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n",
+               PACKAGE);
+#endif
+        printf("Convert the named XBase file into PostgreSQL format\n"
                "\n"
                "  -c  issue a 'CREATE TABLE' command to create the table (default)\n"
                "  -C  do not issue a 'CREATE TABLE' command\n"
@@ -243,7 +249,7 @@ int main(int argc, char **argv) {
                "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"
                "This is free software: you are free to change and redistribute it.\n"
                "There is NO WARRANTY, to the extent permitted by law.\n"
-               "Report bugs to <%s>\n", PACKAGE, PACKAGE_STRING, PACKAGE_BUGREPORT);
+               "Report bugs to <%s>\n", PACKAGE_STRING, PACKAGE_BUGREPORT);
         exit(optexitcode);
     }
 
