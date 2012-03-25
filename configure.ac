@@ -30,7 +30,7 @@ AC_C_BIGENDIAN
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([munmap strchr])
+AC_CHECK_FUNCS([munmap strchr strlcpy strlcat])
 
 AC_ARG_ENABLE([installdocs],
 [  --enable-installdocs    install documentation],

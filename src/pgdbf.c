@@ -29,6 +29,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#if !defined (HAVE_STRLCPY)
+#include "strlcpy.h"
+#endif
+
+#if !defined (HAVE_STRLCAT)
+#include "strlcat.h"
+#endif
+
 #include "pgdbf.h"
 
 int main(int argc, char **argv) {
@@ -762,6 +770,8 @@ int main(int argc, char **argv) {
         }
         close(memofd);
     }
+
+    free(optvalidargs);
 
 #if defined(HAVE_ICONV_H)
     if(conv_desc != NULL) {

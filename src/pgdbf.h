@@ -305,6 +305,7 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
         }
     }
     *t = '\0';
+
     printf("%s", targetbuf);
 
 #if defined(HAVE_ICONV_H)
