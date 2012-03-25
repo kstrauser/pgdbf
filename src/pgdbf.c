@@ -29,15 +29,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if !defined (HAVE_STRLCPY)
-#include "strlcpy.h"
-#endif
-
-#if !defined (HAVE_STRLCAT)
-#include "strlcat.h"
-#endif
-
 #include "pgdbf.h"
+
+#define STANDARDOPTS "cCdDeEhm:nNpPqQtTuU"
 
 int main(int argc, char **argv) {
     /* Describing the DBF file */
@@ -102,7 +96,7 @@ int main(int argc, char **argv) {
                                  * valid and the program should run.
                                  * Anything else is an exit code and the
                                  * program will stop. */
-    char   *optvalidargs = NULL;
+    char    optvalidargs[sizeof(STANDARDOPTS) + 3];
 
     /* Default values for command line options */
     int     optnumericasnumeric = 1;
@@ -127,10 +121,13 @@ int main(int argc, char **argv) {
     char *optinputcharset = NULL;
 #endif
 
-    optvalidargs = calloc(128, 1);
-    strlcpy(optvalidargs, "cCdDeEhm:nNpPqQtTuU", 128);
+    strcpy(optvalidargs, STANDARDOPTS);
 #if defined(HAVE_ICONV_H)
-    strlcat(optvalidargs, "s:", 128);
+    /* Note that the declaration for optvalidargs currently reserves exactly
+     * three chars for this value (two for the string, one for the trailing
+     * \0). If you change this value, be sure to alter the optvalidargs
+     * declaration accordingly! */
+    strcat(optvalidargs, "s:");
 #endif
 
     /* Attempt to parse any command line arguments */
@@ -821,8 +818,6 @@ int main(int argc, char **argv) {
         }
         close(memofd);
     }
-
-    free(optvalidargs);
 
 #if defined(HAVE_ICONV_H)
     if(conv_desc != NULL) {
