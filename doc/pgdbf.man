@@ -131,6 +131,10 @@ other cases.
 .B -Q
 Do not enclose the name of the table in quotation marks. Default.
 .TP
+.B -s encoding
+The encoding used in the file, to be converted to UTF-8. Supported encodings
+depend on your version of the iconv library.
+.TP
 .B -t
 Wrap the entire script in a transaction. Default.
 .TP

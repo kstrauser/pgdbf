@@ -11,9 +11,10 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC
 
 # Checks for libraries.
+AC_SEARCH_LIBS([iconv_open], [iconv])
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h unistd.h])
+AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h unistd.h iconv.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT16_T
@@ -29,7 +30,7 @@ AC_C_BIGENDIAN
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([munmap strchr])
+AC_CHECK_FUNCS([munmap strchr strlcpy strlcat])
 
 AC_ARG_ENABLE([installdocs],
 [  --enable-installdocs    install documentation],

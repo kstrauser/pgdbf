@@ -29,6 +29,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#if !defined (HAVE_STRLCPY)
+#include "strlcpy.h"
+#endif
+
+#if !defined (HAVE_STRLCAT)
+#include "strlcat.h"
+#endif
+
 #include "pgdbf.h"
 
 int main(int argc, char **argv) {
@@ -94,6 +102,7 @@ int main(int argc, char **argv) {
                                  * valid and the program should run.
                                  * Anything else is an exit code and the
                                  * program will stop. */
+    char   *optvalidargs = NULL;
 
     /* Default values for command line options */
     int     optnumericasnumeric = 1;
@@ -113,8 +122,19 @@ int main(int argc, char **argv) {
     char basename[MAXCOLUMNNAMESIZE];
     int serial;
 
+#if defined(HAVE_ICONV_H)
+    /* Character encoding stuff */
+    char *optinputcharset = NULL;
+#endif
+
+    optvalidargs = calloc(128, 1);
+    strlcpy(optvalidargs, "cCdDeEhm:nNpPqQtTuU", 128);
+#if defined(HAVE_ICONV_H)
+    strlcat(optvalidargs, "s:", 128);
+#endif
+
     /* Attempt to parse any command line arguments */
-    while((opt = getopt(argc, argv, "cCdDeEhm:nNpPqQtTuU")) != -1) {
+    while((opt = getopt(argc, argv, optvalidargs)) != -1) {
         switch(opt) {
         case 'c':
             optusecreatetable = 1;
@@ -157,6 +177,11 @@ int main(int argc, char **argv) {
         case 'Q':
             optusequotedtablename = 0;
             break;
+#if defined(HAVE_ICONV_H)
+        case 's':
+            optinputcharset = optarg;
+            break;
+#endif
         case 't':
             optusetransaction = 1;
             break;
@@ -185,9 +210,9 @@ int main(int argc, char **argv) {
     if(optexitcode != EXIT_SUCCESS && optind > (argc - 1)) {
         optexitcode = EXIT_FAILURE;
     }
-    
+
     if(optexitcode != -1) {
-        printf("Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n"
+        printf("Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n"
                "Convert the named XBase file into PostgreSQL format\n"
                "\n"
                "  -c  issue a 'CREATE TABLE' command to create the table (default)\n"
@@ -204,11 +229,17 @@ int main(int argc, char **argv) {
                "  -P  do not show a progress bar\n"
                "  -q  enclose the table name in quotation marks whenever used in statements\n"
                "  -Q  do not enclose the table name in quotation marks (default)\n"
+#if defined(HAVE_ICONV_H)
+               "  -s  the encoding used in the file, to be converted to UTF-8\n"
+#endif
                "  -t  wrap a transaction around the entire series of statements (default)\n"
                "  -T  do not use an enclosing transaction\n"
                "  -u  issue a 'TRUNCATE' command before inserting data\n"
                "  -U  do not issue a 'TRUNCATE' command before inserting data (default)\n"
                "\n"
+#if defined(HAVE_ICONV_H)
+               "If you don't specify an encoding via '-s', the data will be printed as is.\n"
+#endif
                "Using '-u' implies '-C -D'. Using '-c' or '-d' implies '-U'.\n"
                "\n"
                "%s is copyright 2008-2012 kirk@strauser.com.\n"
@@ -225,6 +256,24 @@ int main(int argc, char **argv) {
          * afterward */
         optusedroptable = 0;
     }
+
+#if defined(HAVE_ICONV_H)
+    /* Initialize iconv */
+    if(optinputcharset != NULL) {
+        const char *outputcharset = "UTF-8";
+        conv_desc = iconv_open(outputcharset, optinputcharset);
+
+        if(conv_desc == (iconv_t)-1) {
+            if(errno == EINVAL) {
+                fprintf(stderr, "Conversion from '%s' to '%s' is not supported.\n", optinputcharset, outputcharset);
+            } else {
+                fprintf(stderr, "Initialization failure: %s\n", strerror(errno));
+            }
+
+            exit(1);
+        }
+    }
+#endif
 
     /* Calculate the table's name based on the DBF filename */
     dbffilename = argv[optind];
@@ -344,7 +393,7 @@ int main(int argc, char **argv) {
         if(memofd == -1) {
             exitwitherror("Unable to open the memofile", 1);
         }
-        if (fstat(memofd, &memostat) == -1) {
+        if(fstat(memofd, &memostat) == -1) {
             exitwitherror("Unable to fstat the memofile", 1);
         }
         memofilesize = memostat.st_size;
@@ -358,7 +407,7 @@ int main(int argc, char **argv) {
         memoheader = (MEMOHEADER*) memomap;
         memofileisdbase3 = dbfheader.signature == (int8_t) 0x83;
         if(memofileisdbase3) {
-            memoblocknumber = slittleint32_t(memoheader->nextblock); 
+            memoblocknumber = slittleint32_t(memoheader->nextblock);
         } else {
             memoblocknumber = sbigint32_t(memoheader->nextblock);
         }
@@ -772,5 +821,17 @@ int main(int argc, char **argv) {
         }
         close(memofd);
     }
+
+    free(optvalidargs);
+
+#if defined(HAVE_ICONV_H)
+    if(conv_desc != NULL) {
+        if(iconv_close(conv_desc) != 0) {
+            fprintf(stderr, "iconv_close failed: %s\n", strerror(errno));
+            exit(1);
+        }
+    }
+#endif
+
     return 0;
 }
