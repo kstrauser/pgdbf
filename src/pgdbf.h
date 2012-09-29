@@ -286,21 +286,21 @@ void updateprogressbar(int percent) {
 /* Endian-specific code.  Define functions to convert input data to the
  * required form depending on the endianness of the host architecture. */
 
-#define SWAP8BYTES(rightendptr, wrongendcharptr)   \
-    const char *src = wrongendcharptr + 7;         \
-    memcpy((char *) &rightend    , src--, 1);      \
-    memcpy((char *) &rightend + 1, src--, 1);      \
-    memcpy((char *) &rightend + 2, src--, 1);      \
-    memcpy((char *) &rightend + 3, src--, 1);      \
-    memcpy((char *) &rightend + 4, src--, 1);      \
-    memcpy((char *) &rightend + 5, src--, 1);      \
-    memcpy((char *) &rightend + 6, src--, 1);      \
+#define SWAP8BYTES(rightend, wrongendcharptr)   \
+    const char *src = wrongendcharptr + 7;      \
+    memcpy((char *) &rightend    , src--, 1);   \
+    memcpy((char *) &rightend + 1, src--, 1);   \
+    memcpy((char *) &rightend + 2, src--, 1);   \
+    memcpy((char *) &rightend + 3, src--, 1);   \
+    memcpy((char *) &rightend + 4, src--, 1);   \
+    memcpy((char *) &rightend + 5, src--, 1);   \
+    memcpy((char *) &rightend + 6, src--, 1);   \
     memcpy((char *) &rightend + 7, src  , 1);
 
 #define SWAPANDRETURN8BYTES(wrongendcharptr)   \
     int64_t rightend;                          \
-    SWAP8BYTES(&rightend, wrongendcharptr)     \
-    return rightend;              
+    SWAP8BYTES(rightend, wrongendcharptr)      \
+    return rightend;
 
 #define SWAPANDRETURN4BYTES(wrongendcharptr)   \
     const char *src = wrongendcharptr + 3;     \
@@ -414,7 +414,7 @@ static double sdouble(const char *buf) {
         double  asdouble;
     } inttodouble;
 
-    SWAP8BYTES(&inttodouble.asint64, buf)
+    SWAP8BYTES(inttodouble.asint64, buf)
     return inttodouble.asdouble;
 }
 #else
