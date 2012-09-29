@@ -19,3 +19,5 @@ test/
 *.o
 .DS_Store
 *.tar.xz
+config.guess
+config.sub

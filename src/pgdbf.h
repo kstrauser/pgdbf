@@ -25,6 +25,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(HAVE_ICONV)
+#include <iconv.h>
+#endif
+
 /* This should be big enough to hold most of the varchars and memo fields
  * that you'll be processing.  If a given piece of data won't fit in a
  * buffer of this size, then a temporary buffer will be allocated for it. */
@@ -187,6 +191,52 @@ typedef struct {
     int   memonumbering;
 } PGFIELD;
 
+#if defined(HAVE_ICONV)
+static iconv_t conv_desc = NULL;
+
+static char* convertcharset(const char* inputstring, size_t* inputsize)
+{
+    char   *inbuf;
+    char   *outbuf;
+    size_t  inbytesleft;
+    size_t  outbyteslen;
+    size_t  outbytesleft;
+
+    inbuf = (char *)inputstring;
+    inbytesleft = *inputsize;
+    outbyteslen = inbytesleft * 4 + 1;
+    outbytesleft = outbyteslen;
+    outbuf = calloc(outbyteslen, 1);
+
+    char *outbufstart = outbuf;
+
+    size_t iconv_value = iconv(conv_desc, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
+
+    /* Handle failures. */
+    if(iconv_value == (size_t)-1) {
+        fprintf(stderr, "iconv failed\n");
+        switch(errno) {
+            case EILSEQ:
+                fprintf(stderr, "Invalid multibyte sequence.\n");
+                break;
+            case EINVAL:
+                fprintf(stderr, "Incomplete multibyte sequence.\n");
+                break;
+            case E2BIG:
+                fprintf(stderr, "No more room (increase size of outbuf in pgdbf.h).\n");
+                break;
+            default:
+                fprintf(stderr, "Error: %s.\n", strerror(errno));
+        }
+        exit(1);
+    }
+
+    *inputsize = outbyteslen - outbytesleft;
+
+    return outbufstart;
+}
+#endif
+
 static void exitwitherror(const char *message, const int systemerror) {
     /* Print the given error message to stderr, then exit.  If systemerror
      * is true, then use perror to explain the value in errno. */
@@ -201,11 +251,12 @@ static void exitwitherror(const char *message, const int systemerror) {
 static void safeprintbuf(const char *buf, const size_t inputsize) {
     /* Print a string, insuring that it's fit for use in a tab-delimited
      * text file */
+    char       *convbuf;
     char       *targetbuf;
     const char *s;
     const char *lastchar;
     char       *t;
-    int         realsize = 0;
+    size_t     realsize = 0;
 
     /* Shortcut for empty strings */
     if(*buf == '\0') {
@@ -226,6 +277,15 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
 
     lastchar = s;
     realsize = s - buf + 1;
+    convbuf = (char *)buf;
+
+#if defined(HAVE_ICONV)
+    if(conv_desc != NULL) {
+        convbuf = convertcharset(buf, &realsize);
+        lastchar = convbuf + realsize - 1;
+    }
+#endif
+
     if(realsize * 2 < STATICBUFFERSIZE) {
         targetbuf = staticbuf;
     } else {
@@ -237,7 +297,7 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
 
     /* Re-write invalid characters to their SQL-safe alternatives */
     t = targetbuf;
-    for(s = buf; s <= lastchar; s++) {
+    for(s = convbuf; s <= lastchar; s++) {
         switch(*s) {
         case '\\':
             *t++ = '\\';
@@ -260,7 +320,14 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
         }
     }
     *t = '\0';
+
     printf("%s", targetbuf);
+
+#if defined(HAVE_ICONV)
+    if(conv_desc != NULL) {
+        free(convbuf);
+    }
+#endif
 
     if(targetbuf != staticbuf) {
         free(targetbuf);
@@ -309,14 +376,14 @@ void updateprogressbar(int percent) {
     memcpy((char*) &rightend + 1, src--, 1);   \
     memcpy((char*) &rightend + 2, src--, 1);   \
     memcpy((char*) &rightend + 3, src  , 1);   \
-    return rightend;              
+    return rightend;
 
 #define SWAPANDRETURN2BYTES(wrongendcharptr)   \
     const char *src = wrongendcharptr + 1;     \
     int16_t rightend;                          \
     memcpy((char*) &rightend    , src--, 1);   \
     memcpy((char*) &rightend + 1, src  , 1);   \
-    return rightend;              
+    return rightend;
 
 /* Integer-to-integer */
 

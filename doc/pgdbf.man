@@ -131,6 +131,12 @@ other cases.
 .B -Q
 Do not enclose the name of the table in quotation marks. Default.
 .TP
+.B -s encoding
+Set the encoding used in the input file. When given, output will be converted
+from that encoding to UTF-8. Supported encodings depend on your version of the
+iconv library. Available only if your copy of PgDBF was compiled with iconv
+support.
+.TP
 .B -t
 Wrap the entire script in a transaction. Default.
 .TP
