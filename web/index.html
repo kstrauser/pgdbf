@@ -44,6 +44,8 @@
 
   <h2>Release Notes</h2>
 
+  <p>Version 0.6.2 (September 30, 2012) adds built-in iconv translation from the given encoding to UTF-8. Thanks to Philipp Wollermann, PgDBF's new co-author/co-maintainer, for the heavy lifting! This also fixes </p>
+
   <p>Version 0.6.1 (March 1, 2012) is exactly identical in operation to 0.6.0, but I'm an awful release engineer and always forget to update the version number in the man page, etc. This bumps the revision to indicate that files have changed.</p>
 
   <p>Version 0.6.0 (February 29, 2012) breaks compatibility with older versions by creating NUMERIC fields as type NUMERIC instead of TEXT by default. Use the "-N" flag to get the old behavior. Use the new(ish) PRId64 definition from inttypes.h to print 64-bit CURRENCY fields. Adds an optional progress bar. Adds 64-bit file offset support for Linux (and possibly Solaris, although it's not tested). Increased the default buffer and batch sizes from 1MB and 128KB to 4MB and 16MB respectively. Cleaned up lots of endian-handling code.</p>
@@ -121,7 +123,9 @@ CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
   <p>The "‐q" flag encloses the name of the table in quotation marks in statements
 like "CREATE TABLE", "DROP TABLE", and so on. This is useful  in cases  where  the  table name is a PostgreSQL reserved word, and almost certainly harmless in all other cases.</p>
 
-  <p>The "‐Q" doesn't enclose  the  name  of  the  table  in  quotation  marks. This is the default.</p>
+  <p>The "‐Q" flag doesn't enclose  the  name  of  the  table  in  quotation  marks. This is the default.</p>
+
+  <p>The "-s" flag uses iconv to convert from the named encoding to UTF-8. This is useful for importing databases originally encoded in non-ASCII charsets without losing the non-ASCII data.</p>
 
   <p>The "-t" flag wraps the entire script in a transaction.  Since transaction commits are atomic, there will never be an instant in time where the table appears empty to other clients.  Instead, the old table data will seem to be instantaneously replaced with the new contents.  This is the default.</p>
 
@@ -156,7 +160,7 @@ $ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
 
   <h2>Contributors</h2>
 
-  <p>PgDBF was written by Kirk Strauser &lt;<a href="mailto:kirk@strauser.com">kirk@strauser.com</a>&gt; and approved for release under the GPLv3 by the owner of his company, Brandon Day.</p>
+  <p>PgDBF was originally written by Kirk Strauser &lt;<a href="mailto:kirk@strauser.com">kirk@strauser.com</a>&gt; and approved for release under the GPLv3 by the owner of his company, Brandon Day. Philipp Wollermann joined the team leading up to the release of version 0.6.2.</p>
 
   <p>Special thanks to the following for suggestions and bug reports:</p>
 
@@ -170,7 +174,6 @@ $ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
   <hr>
 
   <p>
-  <!-- hhmts start --> Last modified: Wed Feb 29 11:11:12 PDT 2012 <!-- hhmts end -->
   <br>
   <a href="http://sourceforge.net/projects/pgdbf"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=257285&amp;type=11" width="120" height="30" alt="Get PgDBF at SourceForge.net. Fast, secure and Free Open Source software downloads"></a>
   <a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-html401-blue" alt="Valid HTML 4.01 Strict" height="31" width="88"></a>
