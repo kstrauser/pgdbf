@@ -1,22 +1,29 @@
-# Version strings
+# Update version and date strings
+
+## Versions
 
 * configure.ac
 * doc/pgdbf.man
 * web/index.html
 * freebsd/Makefile
 
-# Release notes
-
-* web/index.html
-
-# Copyright year
+## Copyright year
 
 * doc/pgdbf.man
 * src/pgdbf.c
 * src/pgdbf.h
 * web/index.html
 
-# FreeBSD
+# Update documentation
+
+* doc/pgdbf.man
+* web/index.html
+
+# Update release notes
+
+* web/index.html
+
+# Update FreeBSD port
 
 	$ make distclean
 	$ ./configure
@@ -26,10 +33,37 @@
 
 # SourceForge
 
-Go to https://sourceforge.net/projects/pgdbf/files/pgdbf/
+* Go to https://sourceforge.net/projects/pgdbf/files/pgdbf/
+* Add folder for version
+* Go into that folder
+* Upload the tarball from the FreeBSD port
 
-Add folder for version
+# GitHub
 
-Go into that folder
+Final git commits/pushes
 
-Upload the tarball from the FreeBSD step
+$ git tag -s vX.Y.Z
+
+	Version X.Y.Z
+
+	Adds new features...
+
+$ git push --tags
+
+# Make the FreeBSD release
+
+Go to http://www.freebsd.org/send-pr.html and submit a change request
+
+Subject: "Maintainer update: databases/pgdbf to version X.Y.Z"
+Category: ports
+Class: maintainer-update
+Description:
+
+	This updates the databases/pgdbf port to version X.Y.Z:
+
+	Adds new features...
+
+$ cd freebsd
+$ git diff vX.Y.(Z-1) .
+
+Fix: <copy and paste git diff output>
