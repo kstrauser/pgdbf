@@ -143,15 +143,6 @@ pgdbf foo.dbf rowid "substr(textfield,1,4)" price
 
 <p>will create three indices on the new foo table: one each for the rowid and price columns, and one for the substr() expression. It tries to give each index a reasonable name.</p>
 
-  <h2>Note about character encodings</h2>
-
-  <p>Older versions of PostgreSQL defaulted to the SQL_ASCII character encoding which accepted pretty much any string of bytes you could throw at it.  Newer versions of PostgreSQL default to using UTF-8 encoding.  PgDBF outputs data exactly as it's stored in the XBase tables, and this can result in dumps that PostgreSQL can't directly import.</p>
-  <p>This can be handled by using the <tt>iconv</tt> command like so:</p>
-  <pre>
-$ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
-  </pre>
-  <p>Note that this will <em>discard</em> data that can't be stored in UTF-8.  If this is unacceptable, consider changing your PostgreSQL encoding to match your XBase data.</p>
-
   <h2>Bugs</h2>
 
   <p>When multiple incompatible interpretations of a type are available, such as the 'B' type which can mean 'binary object' in dBASE V or 'double-precision float' in FoxPro, I've used the FoxPro version.</p>
