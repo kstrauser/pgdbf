@@ -1,0 +1,35 @@
+# Version strings
+
+* configure.ac
+* doc/pgdbf.man
+* web/index.html
+* freebsd/Makefile
+
+# Release notes
+
+* web/index.html
+
+# Copyright year
+
+* doc/pgdbf.man
+* src/pgdbf.c
+* src/pgdbf.h
+* web/index.html
+
+# FreeBSD
+
+	$ make distclean
+	$ ./configure
+	$ make dist-xz
+	$ shasum -a 256 pgdbf-*.tar.xz
+	$ ls -la pgdbf-*.tar.xz 
+
+# SourceForge
+
+Go to https://sourceforge.net/projects/pgdbf/files/pgdbf/
+
+Add folder for version
+
+Go into that folder
+
+Upload the tarball from the FreeBSD step
