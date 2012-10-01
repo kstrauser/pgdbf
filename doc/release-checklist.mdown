@@ -52,18 +52,28 @@ $ git push --tags
 
 # Make the FreeBSD release
 
-Go to http://www.freebsd.org/send-pr.html and submit a change request
+Go to http://www.freebsd.org/send-pr.html and submit a change request:
 
-Subject: "Maintainer update: databases/pgdbf to version X.Y.Z"
-Category: ports
-Class: maintainer-update
-Description:
+	Subject: "Maintainer update: databases/pgdbf to version X.Y.Z"
+	Category: ports
+	Class: maintainer-update
+	Description:
 
-	This updates the databases/pgdbf port to version X.Y.Z:
+		This updates the databases/pgdbf port to version X.Y.Z:
 
-	Adds new features...
+		Adds new features...
 
-$ cd freebsd
-$ git diff vX.Y.(Z-1) .
+Run this command:
 
-Fix: <copy and paste git diff output>
+	$ cd freebsd
+	$ git diff vX.Y.(Z-1) .
+
+And use it to fill in the Fix: field:
+
+	Fix: <copy and paste git diff output>
+
+# Make the Homebrew release
+
+* Clone and pull the Homebrew repo at https://github.com/kstrauser/homebrew
+* Update Library/Formula/pgdbf.rb and push it
+* Open a pull request
