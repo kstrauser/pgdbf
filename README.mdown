@@ -19,7 +19,7 @@ A certain test table used during development comprises a 280MB DBF file and a 66
 
 # Downloading
 
-Downloadable tarballs of numbered releases are available at <a href="http://sourceforge.net/project/showfiles.php?group_id=257285">the SourceForge download page</a>. Development happens on GitHub at <a href="https://github.com/kstrauser/pgdbf">https://github.com/kstrauser/pgdbf</a>.
+Downloadable tarballs of numbered releases are available at [the SourceForge download page](http://sourceforge.net/project/showfiles.php?group_id=257285). Development happens on GitHub at [https://github.com/kstrauser/pgdbf](https://github.com/kstrauser/pgdbf).
 
 # Release Notes
 
