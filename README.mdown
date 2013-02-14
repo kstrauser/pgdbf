@@ -81,9 +81,9 @@ The "-c" flag cause PgDBF to print a "CREATE TABLE" statement to make a table wi
 
 The "-C" suppresses the "CREATE TABLE" statement.
 
-The "-d" flag causes PgDBF to print a "DROP TABLE" statement before the "CREATE TABLE" command.  This is useful for replacing the contents of a table that already exists in PostgreSQL.  This is the default behavior.
+The "-d" flag causes PgDBF to print a "DROP TABLE" statement before the "CREATE TABLE" command.  This is useful for replacing the contents of a table that already exists in PostgreSQL.  This is the default behavior.  If "-C" was used to disable the "CREATE TABLE" statement, then "-d" will be silently ignored (as it makes no sense to drop a table and then try to insert into it).
 
-The "-D" flag causes PgDBF *not* to print the "DROP TABLE" statement.  If "-C" was used to disable the "CREATE TABLE" statement, then "-D" will be silently ignored (as it makes no sense to drop a table and then try to insert into it).
+The "-D" flag causes PgDBF *not* to print the "DROP TABLE" statement.
 
 The "-e" flag changes the "DROP TABLE" statement to "DROP TABLE IF EXISTS".  PostgreSQL will return an error when attempting to drop a table that does not exist.  Version 8.2 and newer can use the "IF EXISTS" modifier to drop the table only if it's already defined, and otherwise continue without error. This is the default.
 
