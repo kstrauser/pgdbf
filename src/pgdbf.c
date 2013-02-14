@@ -542,7 +542,11 @@ int main(int argc, char **argv) {
             if(optusecreatetable) printf("DATE");
             break;
         case 'F':
-            if(optusecreatetable) printf("NUMERIC(%d)", fields[fieldnum].decimals);
+            if(fields[fieldnum].decimals > 0) {
+                printf("NUMERIC(%d, %d)", fields[fieldnum].length, fields[fieldnum].decimals);
+            } else {
+                printf("NUMERIC(%d)", fields[fieldnum].length);
+            }
             break;
         case 'G':
             if(optusecreatetable) printf("BYTEA");
