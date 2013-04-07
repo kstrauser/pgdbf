@@ -329,10 +329,10 @@ int main(int argc, char **argv) {
         exitwitherror("Unable to read the entire DBF header", 1);
     }
 
-    if(dbfheader.signature == 0x30) {
-        /* Certain Visual FoxPro files have an (empty?) 263-byte buffer
-         * after the header information.  Take that into account when
-         * calculating field counts and possibly seeking over it later. */
+    if(dbfheader.signature == 0x03 || dbfheader.signature == 0x30) {
+        /* Certain DBF files have an (empty?) 263-byte buffer after the header
+         * information.  Take that into account when calculating field counts
+         * and possibly seeking over it later. */
         skipbytes = 263;
     } else {
         skipbytes = 0;
