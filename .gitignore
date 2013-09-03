@@ -1,16 +1,12 @@
 Makefile
-Makefile.in
 aclocal.m4
 autom4te.cache/
 config.h
 config.log
 config.status
-configure
 depcomp
 description-pak
 doc-pak/
-install-sh
-missing
 src/.deps/
 src/pgdbf
 src/pgdbf.o
@@ -19,5 +15,3 @@ test/
 *.o
 .DS_Store
 *.tar.xz
-config.guess
-config.sub
