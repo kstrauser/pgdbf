@@ -4,7 +4,6 @@ autom4te.cache/
 config.h
 config.log
 config.status
-depcomp
 description-pak
 doc-pak/
 src/.deps/
