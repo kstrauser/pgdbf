@@ -592,7 +592,7 @@ int main(int argc, char **argv) {
             if(optusecreatetable) printf("TIMESTAMP");
             break;
         case 'Y':
-            if(optusecreatetable) printf("DECIMAL(4)");
+            if(optusecreatetable) printf("DECIMAL(20,4)");
             break;
         default:
             if(optusecreatetable) printf("\n");
