@@ -20,15 +20,19 @@ Public test cases are loaded and executed in alphabetical order, followed by pri
 
 # Running test cases
 
-Run the `runtests.py` program *from within the `test/` directory* to execute all unit tests.
+Run the `runtests.py` program *from within the `test/` directory* to execute all unit tests. Use the `-p` argument to select a different pgdbf executable to test (such as a freshly built on at `src/pgdbf`). By default, all test cases in `test/cases` and `test/privatecases` are executed in alphabetical order. If you specify one or more test cases as command line arguments, only those test cases will be executed.
 
-If you specify the `-p` argument to choose which pgdbf executable to test, use either an absolute path, or path *relative to being inside the `cases/` or `privatecases/` directory*. `runtests.py` CDs into each directory in turn so that a test case's `cmd_args` value can refer to a relative path like `data/myfile.dbf`, so giving a path relative to `test/` will fail.
+Before each test case is executed, `runtests.py` CDs into the directory containing that test case. This way, relative paths to data files (like `data/my-database.dbf`) work.
 
-For example:
+Example:
 
-    ./runtests.py ../../src/pgdbf
+    ./runtests.py ../src/pgdbf
 
-will test a freshly built-but-not-installed binary.
+will test a freshly built-but-not-installed binary with all test cases in `test/cases` and `test/privatecases`.
+
+    ./runtests.py my-test-case.json
+
+will test the first pgdbf executable in `$PATH` with just `my-test-case.json`.
 
 # Python 3 compatibility
 
