@@ -6,11 +6,12 @@ config.log
 config.status
 description-pak
 doc-pak/
+oldtest/
 src/.deps/
 src/pgdbf
 src/pgdbf.o
 stamp-h1
-test/
+test/privatecases/
 *.o
 .DS_Store
 *.tar.xz
