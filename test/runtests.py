@@ -2,7 +2,7 @@
 
 # pylint: disable=superfluous-parens
 
-"""Run a suite of PgDBF test cases."""
+"""Run a suite of PgDBF test cases"""
 
 import argparse
 from glob import glob
@@ -10,6 +10,7 @@ from hashlib import md5
 from json import load
 from logging import basicConfig, getLogger, DEBUG, INFO
 from os import chdir, getcwd
+from os.path import abspath, join, split
 from subprocess import Popen, PIPE, STDOUT
 
 LOGGER = getLogger('')
@@ -93,8 +94,8 @@ def check_tail(expected):
         actual = (actual + data)[-length:]
 
 
-def run_test(pgdbf_path, config):
-    """Run a test case with the given pgdbf executable"""
+def build_tests(config):
+    """Build a list of tests from the test case config"""
 
     tests = []
     for key, value in config.items():
@@ -115,22 +116,46 @@ def run_test(pgdbf_path, config):
     if not tests:
         raise ValueError('No tests are configured')
 
+    return tests
+
+
+def handle_exception(exc):
+    """Print information about a failed test case"""
+
+    print("""\
+    Failure : {0.args[0]}
+    Excepted: {0.args[1]!r}
+    Actual  : {0.args[2]!r}
+    """.format(exc))
+
+
+def run_test(pgdbf_path, config):
+    """Run a test case with the given pgdbf executable"""
+
+    tests = build_tests(config)
+
     args = config['cmd_args']
     if not isinstance(args, list):
         args = [args]
+
     command = Popen([pgdbf_path] + args, stdout=PIPE, stderr=STDOUT)
     while True:
         chunk = command.stdout.read(128 * 1024)
         if not chunk:
             break
         for test in tests:
-            test.send(chunk)
+            try:
+                test.send(chunk)
+            except TestError as exc:
+                handle_exception(exc)
 
     for test in tests:
         try:
             test.send(None)
         except StopIteration:
             pass
+        except TestError as exc:
+            handle_exception(exc)
         else:
             raise ValueError('test {} did not close cleanly'.format(test))
 
@@ -142,7 +167,12 @@ def handle_command_line():
     parser.add_argument('--pgdbf', '-p', help='Path to the pgdbf executable')
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help='Increase debugging verbosity')
+    parser.add_argument(
+        'testcase', nargs='*',
+        help='The name of one or more test case files. If given, only run these cases.')
+
     args = parser.parse_args()
+
     if args.verbose >= 2:
         basicConfig(level=DEBUG)
     elif args.verbose == 1:
@@ -151,12 +181,25 @@ def handle_command_line():
         basicConfig()
 
     orig_dir = getcwd()
-    for test_dir in ('cases', 'privatecases'):
-        chdir(test_dir)
-        for case in glob('*.json'):
-            print('Running {}/{}'.format(test_dir, case))
-            with open(case) as infile:
-                run_test(args.pgdbf or 'pgdbf', load(infile))
+    if args.pgdbf:
+        pgdbf_path = abspath(args.pgdbf)
+    else:
+        pgdbf_path = 'pgdbf'
+
+    if args.testcase:
+        cases = args.testcase
+    else:
+        cases = []
+        for test_dir in ('cases', 'privatecases'):
+            cases.extend(glob(join(test_dir, '*.json')))
+
+    for case in cases:
+        test_dir, test_name = split(case)
+        if test_dir:
+            chdir(test_dir)
+        print('Running {}'.format(case))
+        with open(test_name) as infile:
+            run_test(pgdbf_path, load(infile))
         chdir(orig_dir)
 
 
