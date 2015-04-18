@@ -10,6 +10,7 @@ Test cases are JSON files named `[something].json` with defined keys:
     * With one argument: `"cmd_args": "mytable.dbf"`
     * With multiple arguments: `"cmd_args": ["-m", "memofile.fpt", "datafile.dbf"]`
 * **head**: a string to be matched against the start of the test output
+* **length**: the expected length of the test output
 * **md5**: the expected MD5 hex digest of the test output
 * **tail**: a string to be matched against the start of the test output
 
@@ -28,3 +29,7 @@ For example:
     ./runtests.py ../../src/pgdbf
 
 will test a freshly built-but-not-installed binary.
+
+# Python 3 compatibility
+
+Of course. :-)

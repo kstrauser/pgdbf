@@ -22,7 +22,7 @@ def check_head(expected):
     """Check that the start of the file is as expected"""
 
     LOGGER.debug('opened a header check')
-    body = ''
+    body = bytes()
     length = len(expected)
     while True:
         data = yield()
@@ -31,7 +31,7 @@ def check_head(expected):
         body += data
         if len(body) >= length:
             actual = body[:length]
-            if expected != actual:
+            if expected != actual.decode():
                 raise TestError('unequal head', expected, actual)
             LOGGER.info('passed the header check')
             break
@@ -80,12 +80,12 @@ def check_tail(expected):
     """Check that the end of the file is as expected"""
 
     LOGGER.debug('opened a tail check')
-    actual = ''
+    actual = bytes()
     length = len(expected)
     while True:
         data = yield()
         if data is None:
-            if expected != actual:
+            if expected != actual.decode():
                 raise TestError('incorrect tail', actual, expected)
             LOGGER.info('passed the tail check')
             LOGGER.debug('closed the tail check')
@@ -140,7 +140,8 @@ def handle_command_line():
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pgdbf', '-p', help='Path to the pgdbf executable')
-    parser.add_argument('--verbose', '-v', action='count', help='Increase debugging verbosity')
+    parser.add_argument('--verbose', '-v', action='count', default=0,
+                        help='Increase debugging verbosity')
     args = parser.parse_args()
     if args.verbose >= 2:
         basicConfig(level=DEBUG)
