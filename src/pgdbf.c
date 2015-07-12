@@ -536,6 +536,7 @@ int main(int argc, char **argv) {
             if(optusecreatetable) printf("DOUBLE PRECISION");
             break;
         case 'C':
+        case 'W':
             if(optusecreatetable) printf("VARCHAR(%d)", fields[fieldnum].length);
             break;
         case 'D':
@@ -658,6 +659,7 @@ int main(int argc, char **argv) {
                     printf(pgfields[fieldnum].formatstring, sdouble(bufoffset));
                     break;
                 case 'C':
+                case 'W':
                     /* Varchars */
                     safeprintbuf(bufoffset, fields[fieldnum].length);
                     break;
