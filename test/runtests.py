@@ -70,7 +70,7 @@ def check_md5(expected):
         if data is None:
             actual = hasher.hexdigest()
             if expected != actual:
-                raise TestError('bad md5 hash', actual, expected)
+                raise TestError('bad md5 hash', expected, actual)
             LOGGER.info('passed the md5 check')
             LOGGER.debug('closed the md5 check')
             return
@@ -124,7 +124,7 @@ def handle_exception(exc):
 
     print("""\
     Failure : {0.args[0]}
-    Excepted: {0.args[1]!r}
+    Expected: {0.args[1]!r}
     Actual  : {0.args[2]!r}
     """.format(exc))
 
