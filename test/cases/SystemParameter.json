@@ -1,0 +1,6 @@
+{
+    "cmd_args": ["-s", "UTF-16LE", "-R", "data/SystemParameter.dbf"],
+    "head": "BEGIN;\nSET statement_timeout=60000; DROP TABLE IF EXISTS systemparameter; SET statement_timeout=0;\nCREATE TABLE systemparameter (paraname VARCHAR(64), paravalue VARCHAR(64));\n\\COPY systemparameter FROM STDIN\nModelVersion\t6\nVersionIncrement\t1\nProductVersion\tXXXXXXXX\nExporterVersion\tXXXXXXX-XXXXXXXX-XXXXXX\nExportTimestamp\t11/11/2015 10:33:15\nUserName\tppadmin\nDBUsername\tppadmin\nDBName\tXXXXXXXXXXXX\nHostName\tXXXXXXXX\nGDMBaseVersion\tXXXXXXXX\nExportMode\t1FileProKnoten\nExportNr\t5012\nExportKurzBez\tXXXX\nExportLangBez\tXXXXXXXXXXXXXXXXXXXXXX\n\\.\nCOMMIT;\n",
+    "length": 547,
+    "md5": "02d6082e6de64420bf46e3a972c7a954"
+}

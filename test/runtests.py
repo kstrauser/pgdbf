@@ -31,8 +31,8 @@ def check_head(expected):
             raise ValueError({'error': 'short read', 'expected': length, 'actual': len(body)})
         body += data
         if len(body) >= length:
-            actual = body[:length]
-            if expected != actual.decode():
+            actual = body[:length].decode()
+            if expected != actual:
                 raise TestError('unequal head', expected, actual)
             LOGGER.info('passed the header check')
             break
@@ -138,7 +138,9 @@ def run_test(pgdbf_path, config):
     if not isinstance(args, list):
         args = [args]
 
-    command = Popen([pgdbf_path] + args, stdout=PIPE, stderr=STDOUT)
+    args.insert(0, pgdbf_path)
+    LOGGER.debug('running %s', args)
+    command = Popen(args, stdout=PIPE, stderr=STDOUT)
     while True:
         chunk = command.stdout.read(128 * 1024)
         if not chunk:
