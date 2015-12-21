@@ -1,0 +1,5 @@
+{
+    "cmd_args": "data/easton2.dbf",
+    "head": "BEGIN;\nSET statement_timeout=60000; DROP TABLE IF EXISTS easton2; SET statement_timeout=0;\nCREATE TABLE easton2 (unique_id VARCHAR(40), source VARCHAR(20), xref_afe VARCHAR(20), xref_descr VARCHAR(50), afe VARCHAR(10), costcenter VARCHAR(16), split VARCHAR(4));\n\\COPY easton2 FROM STDIN\n\\.\nCOMMIT;\n",
+    "md5": "a3e1722465cfd031fab166d279ae5cc8"
+}
