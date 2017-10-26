@@ -30,8 +30,7 @@
 #include <sys/types.h>
 
 #include "pgdbf.h"
-
-#define STANDARDOPTS "cCdDeEhm:i:nNpPqQtTuU"
+#define STANDARDOPTS "cCdDeEhm:i:nNpPqQrRtTuU"
 
 int main(int argc, char **argv) {
     /* Describing the DBF file */
@@ -112,7 +111,8 @@ int main(int argc, char **argv) {
     int     optusequotedtablename = 0;
     int     optusetransaction = 1;
     int     optusetruncatetable = 0;
-    
+    int     opttrimpadding = 1;
+
     /* Describing the PostgreSQL table */
     char *tablename;
     char *baretablename;
@@ -195,6 +195,12 @@ int main(int argc, char **argv) {
         case 'Q':
             optusequotedtablename = 0;
             break;
+        case 'r':
+            opttrimpadding = 1;
+            break;
+        case 'R':
+            opttrimpadding = 0;
+            break;
 #if defined(HAVE_ICONV)
         case 's':
             optinputcharset = optarg;
@@ -249,6 +255,8 @@ int main(int argc, char **argv) {
                "  -m  the name of the associated memo file (if necessary)\n"
                "  -n  use type 'NUMERIC' for NUMERIC fields (default)\n"
                "  -N  use type 'TEXT' for NUMERIC fields\n"
+               "  -r  remove padding at the end of TEXT and VARCHAR fields (default)\n"
+               "  -R  keep padding at the end of TEXT and VARCHAR fields\n"
                "  -p  show a progress bar during processing\n"
                "  -P  do not show a progress bar\n"
                "  -q  enclose the table name in quotation marks whenever used in statements\n"
@@ -566,6 +574,7 @@ int main(int argc, char **argv) {
             if(optusecreatetable) printf("DOUBLE PRECISION");
             break;
         case 'C':
+        case 'W':
             if(optusecreatetable) printf("VARCHAR(%d)", fields[fieldnum].length);
             break;
         case 'D':
@@ -696,8 +705,9 @@ int main(int argc, char **argv) {
                     printf(pgfields[fieldnum].formatstring, sdouble(bufoffset));
                     break;
                 case 'C':
+                case 'W':
                     /* Varchars */
-                    safeprintbuf(bufoffset, fields[fieldnum].length);
+                    safeprintbuf(bufoffset, fields[fieldnum].length, opttrimpadding);
                     break;
                 case 'D':
                     /* Datestamps */
@@ -766,9 +776,9 @@ int main(int argc, char **argv) {
                         memorecord = memomap + memorecordoffset;
                         if(memofileisdbase3) {
                             t = strchr(memorecord, 0x1A);
-                            safeprintbuf(memorecord, t - memorecord);
+                            safeprintbuf(memorecord, t - memorecord, opttrimpadding);
                         } else {
-                            safeprintbuf(memorecord + 8, sbigint32_t(memorecord + 4));
+                            safeprintbuf(memorecord + 8, sbigint32_t(memorecord + 4), opttrimpadding);
                         }
                     }
                     break;
