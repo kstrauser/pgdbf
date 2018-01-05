@@ -34,6 +34,8 @@
  * buffer of this size, then a temporary buffer will be allocated for it. */
 #define STATICBUFFERSIZE 1024 * 1024 * 4
 
+#define IGNORETYPE '9'
+
 /* Attempt to read approximately this many bytes from the .dbf file at once.
  * The actual number may be adjusted up or down as appropriate. */
 #define DBFBATCHTARGET 1024 * 1024 * 16
@@ -164,6 +166,10 @@ typedef struct {
     int8_t   language;
     int8_t   reserved4[2];
 } DBFHEADER;
+
+typedef struct {
+    char *field;
+} IGNFIELD;
 
 typedef struct {
     char    name[XBASEFIELDNAMESIZE];

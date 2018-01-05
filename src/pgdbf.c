@@ -30,8 +30,7 @@
 #include <sys/types.h>
 
 #include "pgdbf.h"
-
-#define STANDARDOPTS "cCdDeEhm:nNpPqQrRtTuU"
+#define STANDARDOPTS "cCdDeEhm:i:nNpPqQrRtTuU"
 
 int main(int argc, char **argv) {
     /* Describing the DBF file */
@@ -54,8 +53,8 @@ int main(int argc, char **argv) {
     uint8_t        terminator;     /* Testing for terminator bytes */
 
     /* Describing the memo file */
-    MEMOHEADER  *memoheader;
-    char        *memofilename = NULL;
+    MEMOHEADER   *memoheader;
+    char         *memofilename = NULL;
     int          memofd;
     struct stat  memostat;
     int32_t      memoblocknumber;
@@ -68,13 +67,17 @@ int main(int argc, char **argv) {
     size_t       memorecordoffset;
 
     /* Processing and misc */
+    IGNFIELD     *ignorefields;
+    char *istr;
     char *inputbuffer;
     char *outputbuffer;
     char *bufoffset;
     char *s;
     char *t;
     char *u;
-    int  lastcharwasreplaced = 0;
+    int     lastcharwasreplaced = 0;
+    int     printedfieldcount;
+    int     cnt = 1;
     int     i;
     int     j;
     int     isreservedname;
@@ -104,6 +107,7 @@ int main(int argc, char **argv) {
     int     optusecreatetable = 1;
     int     optusedroptable = 1;
     int     optuseifexists = 1;
+    int     optignorefields = 0;
     int     optusequotedtablename = 0;
     int     optusetransaction = 1;
     int     optusetruncatetable = 0;
@@ -153,6 +157,22 @@ int main(int argc, char **argv) {
             break;
         case 'E':
             optuseifexists = 0;
+            break;
+        case 'i':
+            optignorefields = 1;
+            for (i = 0; optarg[i] != '\0'; i++){
+                if (optarg[i] == ',')
+                    cnt++;
+            }
+            ignorefields = calloc(cnt,sizeof(IGNFIELD));
+            istr = strtok(optarg,",");
+            i = 0;
+            while (istr != NULL)
+            {
+                ignorefields[i].field = istr;
+                istr = strtok(NULL,",");
+                i++;
+            }
             break;
         case 'm':
             memofilename = optarg;
@@ -218,9 +238,9 @@ int main(int argc, char **argv) {
     if(optexitcode != -1) {
         printf(
 #if defined(HAVE_ICONV)
-               "Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n"
+               "Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] [-i fieldname1,fieldname2,fieldnameN] filename [indexcolumn ...]\n"
 #else
-               "Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n"
+               "Usage: %s [-cCdDeEhtTuU] [-m memofilename] [-i fieldname1,fieldname2,fieldnameN] filename [indexcolumn ...]\n"
 #endif
                "Convert the named XBase file into PostgreSQL format\n"
                "\n"
@@ -231,6 +251,7 @@ int main(int argc, char **argv) {
                "  -e  use 'IF EXISTS' when dropping tables (PostgreSQL 8.2+) (default)\n"
                "  -E  do not use 'IF EXISTS' when dropping tables (PostgreSQL 8.1 and older)\n"
                "  -h  print this message and exit\n"
+               "  -i  ignore fields"
                "  -m  the name of the associated memo file (if necessary)\n"
                "  -n  use type 'NUMERIC' for NUMERIC fields (default)\n"
                "  -N  use type 'TEXT' for NUMERIC fields\n"
@@ -511,7 +532,15 @@ int main(int argc, char **argv) {
     if(optusecreatetable) printf("CREATE TABLE %s (", baretablename);
     printed = 0;
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
-        if(fields[fieldnum].type == '0') {
+        if(optignorefields){
+            for (i = 0; i<cnt; ++i){
+                //printf("%s\n", ignorefields[i].field);
+                if(strcmp(fieldnames[fieldnum],ignorefields[i].field) == 0)
+                    fields[fieldnum].type = IGNORETYPE;
+            }
+        } 
+
+        if(fields[fieldnum].type == '0' || fields[fieldnum].type == IGNORETYPE) {
             continue;
         }
         if(printed && optusecreatetable) {
@@ -655,13 +684,21 @@ int main(int argc, char **argv) {
                 continue;
             }
             bufoffset++;
+
+            printedfieldcount = 0;
             for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
                 if(fields[fieldnum].type == '0') {
                     continue;
                 }
-                if(fieldnum) {
-                    printf("\t");
+
+                if(fields[fieldnum].type == IGNORETYPE) {
+                    bufoffset += fields[fieldnum].length;
+                    continue;
                 }
+
+                if(printedfieldcount)
+                    printf("\t");
+
                 switch(fields[fieldnum].type) {
                 case 'B':
                     /* Double floats */
@@ -787,6 +824,7 @@ int main(int argc, char **argv) {
                     printf("%s", outputbuffer);
                     break;
                 };
+                printedfieldcount++;
                 bufoffset += fields[fieldnum].length;
             }
             printf("\n");
