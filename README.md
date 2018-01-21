@@ -23,7 +23,9 @@ Downloadable tarballs of numbered releases are available at [the SourceForge dow
 
 # Release Notes
 
-Version 0.6.2 (September 30, 2012) adds built-in iconv translation from the given encoding to UTF-8. Thanks to Philipp Wollermann, PgDBF's new co-author/co-maintainer, for the heavy lifting! This also fixes 
+Version 0.6.3 (January 21, 2018) adds the autoindex (autoincrement) field identifier 0x31 and 0x32, and outputs "V" fields as varchar. Handles wide varchars. Can ignore fields with "-i". Can disable automatic removal of field padding. Correct column time for currencies. Format FLOAT fields like NUMERIC.
+
+Version 0.6.2 (September 30, 2012) adds built-in iconv translation from the given encoding to UTF-8. Thanks to Philipp Wollermann, PgDBF's new co-author/co-maintainer, for the heavy lifting!
 
 Version 0.6.1 (March 1, 2012) is exactly identical in operation to 0.6.0, but I'm an awful release engineer and always forget to update the version number in the man page, etc. This bumps the revision to indicate that files have changed.
 
@@ -47,31 +49,35 @@ Version 0.5.0 (November 24, 2009) is not a drop-in replacement for older version
   
 # Building and Installation
 
-    $ ./configure; make; make install
-
+```shell
+./configure; make; make install
+```
 
 # Usage
 
 Use PgDBF to convert your XBase tables into a format suitable for piping into the psql client.  PgDBF will generate the commands necessary to create near-exact replicas of your tables. Its output looks something like: 
 
-
-    BEGIN;
-    SET statement_timeout=60000; DROP TABLE IF EXISTS invoice; SET statement_timeout=0;
-    CREATE TABLE invoice (invoiceid INTEGER, note VARCHAR(50), billdate DATE, submitted TIMESTAMP, memofield TEXT, approved BOOLEAN);
-    \COPY invoice FROM STDIN
-    ...
-    ...
-    ...
-    \.
-    COMMIT;
-    CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
+```sql
+BEGIN;
+SET statement_timeout=60000; DROP TABLE IF EXISTS invoice; SET statement_timeout=0;
+CREATE TABLE invoice (invoiceid INTEGER, note VARCHAR(50), billdate DATE, submitted TIMESTAMP, memofield TEXT, approved BOOLEAN);
+\COPY invoice FROM STDIN
+...
+...
+...
+\.
+COMMIT;
+CREATE INDEX invoice_invoiceid ON invoice(invoiceid);
+```
 
 Note that the entire process is usually wrapped inside a transaction so that other clients will have access to the old data until the transaction is completed. 
 
 
 ## Command Line
 
-    Usage: pgdbf [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]
+```
+Usage: pgdbf [-cCdDeEhnNpPqQtTuU] [-s encoding] [-m memofilename] [-i fieldname1,fieldname2,fieldnameN] filename [indexcolumn ...]
+```
 
 The only required argument is the filename of the table to be converted.  If the table has a memo field, then use the "-m" option to specify the path to the memo file.
 
@@ -88,6 +94,8 @@ The "-D" flag causes PgDBF *not* to print the "DROP TABLE" statement.
 The "-e" flag changes the "DROP TABLE" statement to "DROP TABLE IF EXISTS".  PostgreSQL will return an error when attempting to drop a table that does not exist.  Version 8.2 and newer can use the "IF EXISTS" modifier to drop the table only if it's already defined, and otherwise continue without error. This is the default.
 
 The "-E" flag disables the "IF EXISTS" modifier to "DROP TABLE" for compatibility with old versions of PostgreSQL.
+
+The "-i" flag gives a comma-separated list of field names to remove from the output.
 
 Use the "-m" argument to specify the memofile (if any) associated with the table.
 
@@ -115,7 +123,9 @@ The "-u" flag generates a "TRUNCATE TABLE" statement to quickly empty a table wi
 
 Indices are automatically created if you specify the columns (or expressions!) you want indexed on the command line. For example, 
 
-    pgdbf foo.dbf rowid "substr(textfield,1,4)" price
+```shell
+pgdbf foo.dbf rowid "substr(textfield,1,4)" price
+```
 
 will create three indices on the new foo table: one each for the rowid and price columns, and one for the substr() expression. It tries to give each index a reasonable name.
 
@@ -127,7 +137,9 @@ PgDBF's "-s" flag can handle this for you by using `libiconv` to convert an XBas
 
 Sometimes this is insufficient, usually because the input table files contain corrupted data. In this case, if you can afford to lose the corrupted bytes, the separate `iconv` command can be used like so:
 
-    $ pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
+```shell
+pgdbf table.dbf | iconv -c -f UTF-8 -t UTF-8 | psql targetdatabase
+```
 
 Note that this will *discard* data that can't be stored in UTF-8.
 
@@ -144,6 +156,7 @@ PgDBF was originally written by [Kirk Strauser](kirk@strauser.com">kirk@strauser
 Special thanks to the following for suggestions and bug reports:
 
 * John Easton
+* Stephan Kasdorf
 * Alan Polinsky
 * Fabrízio de Royes Mello
 * Gordon Sweet
