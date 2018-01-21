@@ -359,7 +359,7 @@ int main(int argc, char **argv) {
         exitwitherror("Unable to read the entire DBF header", 1);
     }
 
-    if(dbfheader.signature == 0x30) {
+    if((dbfheader.signature == 0x30) || (dbfheader.signature == 0x31) || (dbfheader.signature == 0x32)) {
         /* Certain DBF files have an (empty?) 263-byte buffer after the header
          * information.  Take that into account when calculating field counts
          * and possibly seeking over it later. */
@@ -574,6 +574,7 @@ int main(int argc, char **argv) {
             if(optusecreatetable) printf("DOUBLE PRECISION");
             break;
         case 'C':
+        case 'V':
         case 'W':
             if(optusecreatetable) printf("VARCHAR(%d)", fields[fieldnum].length);
             break;
